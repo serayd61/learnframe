@@ -1,0 +1,9 @@
+{
+  "network": "baseSepolia",
+  "chainId": 84532,
+  "contracts": {
+    "learnToken": "0xfD2afbF93acF269F0bA29Da5afb7eeb2B54e1320",
+    "quizManager": "0x61c798f9fE3bF4B0f54433820786110b8c331Ec8"
+  },
+  "deployedAt": "2024-01-04"
+}
