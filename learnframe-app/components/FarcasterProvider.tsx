@@ -2,24 +2,33 @@
 
 import { useEffect, useState, createContext, useContext } from 'react';
 
-interface FarcasterContextType {
-  context: unknown;
-  isLoading: boolean;
-  user: unknown;
+interface FarcasterUser {
+  fid?: number;
+  username?: string;
 }
 
-const FarcasterContext = createContext<FarcasterContextType>({
+interface FarcasterContext {
+  user?: FarcasterUser;
+}
+
+interface FarcasterContextType {
+  context: FarcasterContext | null;
+  isLoading: boolean;
+  user: FarcasterUser | null;
+}
+
+const FarcasterContextValue = createContext<FarcasterContextType>({
   context: null,
   isLoading: true,
   user: null,
 });
 
 export function useFarcaster() {
-  return useContext(FarcasterContext);
+  return useContext(FarcasterContextValue);
 }
 
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
-  const [context, setContext] = useState<unknown>(null);
+  const [context, setContext] = useState<FarcasterContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +37,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         const sdk = (await import('@farcaster/frame-sdk')).default;
         const frameContext = await sdk.context;
         console.log('Frame context:', frameContext);
-        setContext(frameContext);
+        setContext(frameContext as FarcasterContext);
         sdk.actions.ready();
         console.log('SDK ready() called!');
       } catch (error) {
@@ -44,14 +53,14 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <FarcasterContext.Provider 
+    <FarcasterContextValue.Provider 
       value={{ 
         context, 
         isLoading,
-        user: (context as any)?.user || null
+        user: context?.user || null
       }}
     >
       {children}
-    </FarcasterContext.Provider>
+    </FarcasterContextValue.Provider>
   );
 }
