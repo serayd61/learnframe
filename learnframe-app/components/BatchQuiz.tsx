@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useRouter } from 'next/navigation';
 
 const QUIZ_QUESTIONS = [
@@ -41,8 +41,8 @@ export function BatchQuiz() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [redirectCountdown, setRedirectCountdown] = useState(5);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const { writeContract: startSession, data: startHash } = useWriteContract();
   const { isLoading: isStarting, isSuccess: isStarted } = useWaitForTransactionReceipt({ hash: startHash });
@@ -59,30 +59,27 @@ export function BatchQuiz() {
   }, [isStarted, sessionStarted]);
 
   useEffect(() => {
-    if (isSubmitted && quizCompleted) {
-      const timer = setInterval(() => {
-        setRedirectCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            router.push('/');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
+    if (isSubmitted && quizCompleted && !showSuccess) {
+      setShowSuccess(true);
+      const correctCount = checkAnswers();
+      
+      // Show success message for 3 seconds then redirect
+      setTimeout(() => {
+        if (correctCount === 10) {
+          // If all correct, go to leaderboard
+          router.push('/leaderboard');
+        } else {
+          // If not all correct, go to home
+          router.push('/');
+        }
+      }, 3000);
     }
-  }, [isSubmitted, quizCompleted, router]);
+  }, [isSubmitted, quizCompleted, showSuccess, router]);
 
   const handleStartQuiz = async () => {
     try {
       setError('');
-      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ;
-      
-      if (!contractAddress) {
-        setError('Contract address not configured');
-        return;
-      }
+      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0x749cdd9355254782828eDae7D85212A2e408D14c';
 
       await startSession({
         address: contractAddress as `0x${string}`,
@@ -122,12 +119,7 @@ export function BatchQuiz() {
 
     try {
       setError('');
-      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ;
-      
-      if (!contractAddress) {
-        setError('Contract address not configured');
-        return;
-      }
+      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0x749cdd9355254782828eDae7D85212A2e408D14c';
 
       await submitAnswers({
         address: contractAddress as `0x${string}`,
@@ -153,8 +145,8 @@ export function BatchQuiz() {
     return correct;
   };
 
-  // Results Screen
-  if (isSubmitted && quizCompleted) {
+  // Success Screen
+  if (showSuccess) {
     const correctCount = checkAnswers();
     return (
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
@@ -168,17 +160,32 @@ export function BatchQuiz() {
           {correctCount === 10 ? (
             <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6">
               <p className="text-xl font-bold">Congratulations! You earned 100 LEARN tokens!</p>
-              <p className="text-lg mt-2">Transaction successful! Tokens are in your wallet.</p>
+              <p className="text-lg mt-2">Redirecting to leaderboard...</p>
             </div>
           ) : (
             <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-4 mb-6">
               <p className="text-xl">You need all 10 correct to earn tokens.</p>
-              <p className="text-lg mt-2">Better luck next time!</p>
+              <p className="text-lg mt-2">Redirecting to homepage...</p>
             </div>
           )}
-          <p className="text-lg text-gray-400">
-            Redirecting to homepage in {redirectCountdown} seconds...
-          </p>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Waiting for TX confirmation
+  if (isSubmitting && quizCompleted) {
+    return (
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold mb-4">Processing Transaction...</h2>
+          <p className="text-xl mb-6">Please wait while we verify your answers</p>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
         </div>
       </div>
     );
