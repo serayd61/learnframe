@@ -9,7 +9,7 @@ export default function SDKReady() {
         const { default: sdk } = await import('@farcaster/frame-sdk');
         sdk.actions.ready();
         console.log('✅ SDK ready() called successfully');
-      } catch (e) {
+      } catch {
         console.log('Not in Farcaster context or SDK error');
       }
     };

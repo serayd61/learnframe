@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const frameHtml = `
 <!DOCTYPE html>
 <html>
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         }
       ]
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 }

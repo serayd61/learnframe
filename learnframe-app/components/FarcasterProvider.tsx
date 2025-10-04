@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState, createContext, useContext } from 'react';
-import sdk, { type FrameContext } from '@farcaster/frame-sdk';
 
 interface FarcasterContextType {
-  context: FrameContext | null;
+  context: unknown;
   isLoading: boolean;
-  user: any;
+  user: unknown;
 }
 
 const FarcasterContext = createContext<FarcasterContextType>({
@@ -20,33 +19,28 @@ export function useFarcaster() {
 }
 
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
-  const [context, setContext] = useState<FrameContext | null>(null);
+  const [context, setContext] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
+    const initializeSDK = async () => {
       try {
-        // SDK'nın yüklenmesini bekle
-        if (typeof window !== 'undefined') {
-          // Context'i al
-          const frameContext = await sdk.context;
-          console.log('Frame context loaded:', frameContext);
-          setContext(frameContext);
-          
-          // SDK hazır olduğunu bildir - ÖNEMLİ!
-          await sdk.actions.ready();
-          console.log('SDK ready() called successfully');
-          setIsSDKLoaded(true);
-        }
+        const sdk = (await import('@farcaster/frame-sdk')).default;
+        const frameContext = await sdk.context;
+        console.log('Frame context:', frameContext);
+        setContext(frameContext);
+        sdk.actions.ready();
+        console.log('SDK ready() called!');
       } catch (error) {
-        console.log('Not in Frame context:', error);
+        console.log('Frame SDK error or not in frame:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    load();
+    if (typeof window !== 'undefined') {
+      initializeSDK();
+    }
   }, []);
 
   return (
@@ -54,7 +48,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       value={{ 
         context, 
         isLoading,
-        user: context?.user || null
+        user: (context as any)?.user || null
       }}
     >
       {children}
