@@ -40,8 +40,9 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
         functionName: 'submitAnswer',
         args: [BigInt(quizId), selectedAnswer],
       });
-    } catch (err: any) {
-      setError(err.message || 'Transaction failed');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
+      setError(errorMessage);
     }
   };
 

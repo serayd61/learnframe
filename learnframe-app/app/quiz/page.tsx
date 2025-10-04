@@ -6,12 +6,21 @@ import { useAccount, useReadContract } from 'wagmi';
 import QuizManagerABI from '@/lib/contracts/QuizManager.json';
 import { useState, useEffect } from 'react';
 
+interface QuizData {
+  quizId: number;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  reward: number;
+  category: string;
+  difficulty: number;
+  active: boolean;
+}
+
 export default function QuizPage() {
   const { isConnected } = useAccount();
-  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizData[]>([]);
 
-  // Quiz verilerini manuel olarak tanımlayalım
-  // Contract'tan sadece reward ve difficulty çekeceğiz
   const quizQuestions = [
     {
       quizId: 1,
@@ -39,7 +48,6 @@ export default function QuizPage() {
     }
   ];
 
-  // Her quiz için contract'tan bilgi çek
   const { data: quiz1 } = useReadContract({
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
     abi: QuizManagerABI.abi,
@@ -69,7 +77,7 @@ export default function QuizPage() {
   });
 
   useEffect(() => {
-    const quizData = [quiz1, quiz2, quiz3, quiz4];
+    const quizData = [quiz1, quiz2, quiz3, quiz4] as any[];
     const formattedQuizzes = quizQuestions.map((q, index) => {
       const contractData = quizData[index];
       if (!contractData) return null;
@@ -77,11 +85,11 @@ export default function QuizPage() {
       return {
         ...q,
         reward: Number(contractData[2]),
-        category: contractData[3],
+        category: contractData[3] as string,
         difficulty: Number(contractData[4]),
-        active: contractData[6]
+        active: contractData[6] as boolean
       };
-    }).filter(q => q && q.active);
+    }).filter((q): q is QuizData => q !== null && q.active);
     
     setQuizzes(formattedQuizzes);
   }, [quiz1, quiz2, quiz3, quiz4]);
