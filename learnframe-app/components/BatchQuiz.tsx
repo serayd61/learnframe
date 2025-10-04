@@ -42,13 +42,13 @@ export function BatchQuiz() {
   const [error, setError] = useState('');
   
   const { writeContract: startSession, data: startHash } = useWriteContract();
-  const { isLoading: startLoading, isSuccess: startSuccess, isError: startError } = useWaitForTransactionReceipt({ 
+  const { isSuccess: startSuccess } = useWaitForTransactionReceipt({ 
     hash: startHash,
     confirmations: 1,
   });
   
   const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
-  const { isLoading: submitLoading, isSuccess: submitSuccess, isError: submitError } = useWaitForTransactionReceipt({ 
+  const { isSuccess: submitSuccess } = useWaitForTransactionReceipt({ 
     hash: submitHash,
     confirmations: 1,
   });

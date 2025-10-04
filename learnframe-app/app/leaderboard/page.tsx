@@ -5,6 +5,12 @@ import { useReadContract } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 
+interface User {
+  address: string;
+  score: number;
+  rank: number;
+}
+
 const LEADERBOARD_ABI = [
   {
     "inputs": [{"internalType": "uint256", "name": "count", "type": "uint256"}],
@@ -19,8 +25,7 @@ const LEADERBOARD_ABI = [
 ];
 
 export default function LeaderboardPage() {
-  const [topUsers, setTopUsers] = useState<any[]>([]);
-  const [timeFilter, setTimeFilter] = useState<'all' | 'weekly'>('all');
+  const [topUsers, setTopUsers] = useState<User[]>([]);
 
   const { data: leaderboardData, refetch } = useReadContract({
     address: '0x62Ad46dA54b11358A73b3A009a56BDe154C38AF8' as `0x${string}`,
