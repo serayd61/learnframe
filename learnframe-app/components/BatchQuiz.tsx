@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import BatchQuizABI from '@/lib/contracts/BatchQuizManager.json';
 
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", answer: "ETH", hint: "3 letters" },
@@ -18,20 +17,49 @@ const QUIZ_QUESTIONS = [
   { id: 10, question: "What is the name of Base's major upgrade?", answer: "Bedrock", hint: "7 letters" }
 ];
 
+const BATCH_QUIZ_ABI = [
+  {
+    "inputs": [],
+    "name": "startQuizSession",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "string[10]", "name": "userAnswers", "type": "string[10]"}],
+    "name": "submitBatchAnswers",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
 export function BatchQuiz() {
   const router = useRouter();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>(new Array(10).fill(''));
   const [quizStarted, setQuizStarted] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(5);
+  const [error, setError] = useState('');
   
-  const { writeContract: startSession } = useWriteContract();
+  const { writeContract: startSession, data: startHash } = useWriteContract();
+  const { isLoading: isStarting, isSuccess: isStarted } = useWaitForTransactionReceipt({ hash: startHash });
+  
   const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
-  const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash: submitHash });
+  const { isLoading: isSubmitting, isSuccess: isSubmitted } = useWaitForTransactionReceipt({ hash: submitHash });
 
   useEffect(() => {
-    if (isSuccess && quizCompleted) {
+    if (isStarted && !sessionStarted) {
+      setSessionStarted(true);
+      setQuizStarted(true);
+      setError('');
+    }
+  }, [isStarted, sessionStarted]);
+
+  useEffect(() => {
+    if (isSubmitted && quizCompleted) {
       const timer = setInterval(() => {
         setRedirectCountdown(prev => {
           if (prev <= 1) {
@@ -44,18 +72,26 @@ export function BatchQuiz() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isSuccess, quizCompleted, router]);
+  }, [isSubmitted, quizCompleted, router]);
 
   const handleStartQuiz = async () => {
     try {
+      setError('');
+      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ;
+      
+      if (!contractAddress) {
+        setError('Contract address not configured');
+        return;
+      }
+
       await startSession({
-        address: process.env.NEXT_PUBLIC_BATCH_QUIZ as `0x${string}`,
-        abi: BatchQuizABI.abi,
+        address: contractAddress as `0x${string}`,
+        abi: BATCH_QUIZ_ABI,
         functionName: 'startQuizSession',
       });
-      setQuizStarted(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting quiz:', error);
+      setError(error?.message || 'Failed to start quiz session');
     }
   };
 
@@ -84,15 +120,24 @@ export function BatchQuiz() {
     }
 
     try {
+      setError('');
+      const contractAddress = process.env.NEXT_PUBLIC_BATCH_QUIZ;
+      
+      if (!contractAddress) {
+        setError('Contract address not configured');
+        return;
+      }
+
       await submitAnswers({
-        address: process.env.NEXT_PUBLIC_BATCH_QUIZ as `0x${string}`,
-        abi: BatchQuizABI.abi,
+        address: contractAddress as `0x${string}`,
+        abi: BATCH_QUIZ_ABI,
         functionName: 'submitBatchAnswers',
         args: [answers],
       });
       setQuizCompleted(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting answers:', error);
+      setError(error?.message || 'Failed to submit answers');
     }
   };
 
@@ -106,7 +151,8 @@ export function BatchQuiz() {
     return correct;
   };
 
-  if (isSuccess && quizCompleted) {
+  // Results Screen
+  if (isSubmitted && quizCompleted) {
     const correctCount = checkAnswers();
     return (
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
@@ -136,6 +182,7 @@ export function BatchQuiz() {
     );
   }
 
+  // Start Screen
   if (!quizStarted) {
     return (
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
@@ -163,11 +210,19 @@ export function BatchQuiz() {
             </p>
           </div>
         </div>
+        
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4">
+            <p className="text-red-300">{error}</p>
+          </div>
+        )}
+        
         <button
           onClick={handleStartQuiz}
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl font-bold text-lg transform hover:scale-105 transition"
+          disabled={isStarting}
+          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 rounded-xl font-bold text-lg transform hover:scale-105 transition"
         >
-          Start Quiz Session →
+          {isStarting ? 'Starting Session...' : 'Start Quiz Session →'}
         </button>
       </div>
     );
@@ -175,6 +230,7 @@ export function BatchQuiz() {
 
   const question = QUIZ_QUESTIONS[currentQuestion];
 
+  // Quiz Screen
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
       {/* Progress Bar */}
@@ -210,7 +266,7 @@ export function BatchQuiz() {
           <button
             key={i}
             onClick={() => setCurrentQuestion(i)}
-            className={`py-2 rounded-lg text-sm font-bold ${
+            className={`py-2 rounded-lg text-sm font-bold transition ${
               i === currentQuestion ? 'bg-blue-600' :
               answer ? 'bg-green-600/50' : 'bg-slate-700'
             }`}
@@ -219,6 +275,12 @@ export function BatchQuiz() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4">
+          <p className="text-red-300">{error}</p>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex justify-between items-center">
@@ -233,10 +295,10 @@ export function BatchQuiz() {
         {currentQuestion === 9 ? (
           <button
             onClick={handleSubmitAll}
-            disabled={isLoading || answers.some(a => !a.trim())}
+            disabled={isSubmitting || answers.some(a => !a.trim())}
             className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 rounded-lg font-bold text-lg"
           >
-            {isLoading ? 'Submitting...' : 'Submit All Answers'}
+            {isSubmitting ? 'Submitting...' : 'Submit All Answers'}
           </button>
         ) : (
           <button
