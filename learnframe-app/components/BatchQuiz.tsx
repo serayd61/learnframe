@@ -1,37 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useRouter } from 'next/navigation';
+import BatchQuizABI from '@/lib/contracts/BatchQuizManager.json';
 
 const QUIZ_QUESTIONS = [
-  { id: 1, question: "What is the native token of Base?", answer: "ETH" },
-  { id: 2, question: "Which company developed Base?", answer: "Coinbase" },
-  { id: 3, question: "What is Base built on?", answer: "Optimism" },
-  { id: 4, question: "Is Base EVM compatible? (yes/no)", answer: "Yes" },
-  { id: 5, question: "What type of network is Base? (Layer1/Layer2)", answer: "Layer2" },
-  { id: 6, question: "What is Base's underlying blockchain?", answer: "Ethereum" },
-  { id: 7, question: "What year was Base launched?", answer: "2023" },
-  { id: 8, question: "What type of rollup is Base? (Optimistic/ZK)", answer: "Optimistic" },
-  { id: 9, question: "Are gas fees on Base higher or lower than Ethereum?", answer: "Lower" },
-  { id: 10, question: "What is the name of Base's major upgrade?", answer: "Bedrock" }
+  { id: 1, question: "What is the native token of Base?", answer: "ETH", hint: "3 letters" },
+  { id: 2, question: "Which company developed Base?", answer: "Coinbase", hint: "8 letters" },
+  { id: 3, question: "What is Base built on?", answer: "Optimism", hint: "8 letters" },
+  { id: 4, question: "Is Base EVM compatible? (yes/no)", answer: "Yes", hint: "3 letters" },
+  { id: 5, question: "What type of network is Base? (Layer1/Layer2)", answer: "Layer2", hint: "6 letters" },
+  { id: 6, question: "What is Base's underlying blockchain?", answer: "Ethereum", hint: "8 letters" },
+  { id: 7, question: "What year was Base launched?", answer: "2023", hint: "4 digits" },
+  { id: 8, question: "What type of rollup is Base? (Optimistic/ZK)", answer: "Optimistic", hint: "10 letters" },
+  { id: 9, question: "Are gas fees on Base higher or lower than Ethereum?", answer: "Lower", hint: "5 letters" },
+  { id: 10, question: "What is the name of Base's major upgrade?", answer: "Bedrock", hint: "7 letters" }
 ];
 
 export function BatchQuiz() {
+  const router = useRouter();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>(new Array(10).fill(''));
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(5);
   
   const { writeContract: startSession } = useWriteContract();
   const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
   const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash: submitHash });
 
+  useEffect(() => {
+    if (isSuccess && quizCompleted) {
+      const timer = setInterval(() => {
+        setRedirectCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.push('/');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isSuccess, quizCompleted, router]);
+
   const handleStartQuiz = async () => {
     try {
       await startSession({
         address: process.env.NEXT_PUBLIC_BATCH_QUIZ as `0x${string}`,
-        abi: [{ name: 'startQuizSession', type: 'function', inputs: [], outputs: [] }],
+        abi: BatchQuizABI.abi,
         functionName: 'startQuizSession',
       });
       setQuizStarted(true);
@@ -67,12 +86,7 @@ export function BatchQuiz() {
     try {
       await submitAnswers({
         address: process.env.NEXT_PUBLIC_BATCH_QUIZ as `0x${string}`,
-        abi: [{
-          name: 'submitBatchAnswers',
-          type: 'function',
-          inputs: [{ name: 'userAnswers', type: 'string[10]' }],
-          outputs: []
-        }],
+        abi: BatchQuizABI.abi,
         functionName: 'submitBatchAnswers',
         args: [answers],
       });
@@ -105,19 +119,18 @@ export function BatchQuiz() {
           </p>
           {correctCount === 10 ? (
             <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6">
-              <p className="text-xl">Congratulations! You earned 100 LEARN tokens!</p>
+              <p className="text-xl font-bold">Congratulations! You earned 100 LEARN tokens!</p>
+              <p className="text-lg mt-2">Transaction successful! Tokens are in your wallet.</p>
             </div>
           ) : (
             <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-4 mb-6">
-              <p className="text-xl">You need all 10 correct to earn tokens. Try again!</p>
+              <p className="text-xl">You need all 10 correct to earn tokens.</p>
+              <p className="text-lg mt-2">Better luck next time!</p>
             </div>
           )}
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold"
-          >
-            Try Another Quiz
-          </button>
+          <p className="text-lg text-gray-400">
+            Redirecting to homepage in {redirectCountdown} seconds...
+          </p>
         </div>
       </div>
     );
@@ -126,20 +139,33 @@ export function BatchQuiz() {
   if (!quizStarted) {
     return (
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold mb-6 text-center">Base Blockchain Quiz</h2>
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6 mb-6">
-          <h3 className="text-xl font-bold mb-3">📋 Quiz Rules:</h3>
-          <ul className="space-y-2">
-            <li>• 10 questions about Base blockchain</li>
-            <li>• You must get ALL 10 correct to earn tokens</li>
-            <li>• 100 LEARN tokens for perfect score</li>
-            <li>• Only 1 transaction at the end</li>
-            <li>• 30 minutes time limit</li>
-          </ul>
+        <h2 className="text-3xl font-bold mb-6 text-center">Base Blockchain Quiz Challenge</h2>
+        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-purple-500/30 rounded-lg p-6 mb-6">
+          <h3 className="text-2xl font-bold mb-4 text-center text-yellow-400">
+            Win 100 LEARN Tokens!
+          </h3>
+          <div className="space-y-3">
+            <p className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span>10 questions about Base blockchain</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span>Get ALL 10 correct to win 100 LEARN tokens</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span>Only 1 transaction at the end</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span>30 minutes time limit</span>
+            </p>
+          </div>
         </div>
         <button
           onClick={handleStartQuiz}
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl font-bold text-lg"
+          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl font-bold text-lg transform hover:scale-105 transition"
         >
           Start Quiz Session →
         </button>
@@ -175,7 +201,7 @@ export function BatchQuiz() {
           placeholder="Type your answer..."
           className="w-full px-4 py-3 bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
         />
-        <p className="text-sm text-gray-400 mt-2">Hint: {question.answer.length} characters</p>
+        <p className="text-sm text-gray-400 mt-2">Hint: {question.hint}</p>
       </div>
 
       {/* Answer Status Grid */}

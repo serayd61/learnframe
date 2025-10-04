@@ -42,6 +42,7 @@ export default function Home() {
           </nav>
 
           <div className="container mx-auto px-4 py-12">
+            {/* Hero Section */}
             <div className="text-center mb-12">
               <h2 className="text-5xl md:text-7xl font-bold text-white mb-4">
                 Learn. <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">Earn.</span> Grow.
@@ -49,24 +50,57 @@ export default function Home() {
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
                 Master blockchain knowledge through interactive quizzes and earn LEARN tokens on Base
               </p>
-              <div className="mt-8 flex gap-4 justify-center">
-                {isConnected ? (
-                  <>
-                    <Link href="/quiz" className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl font-bold text-lg hover:scale-105 transition transform">
-                      Start Quiz →
-                    </Link>
-                    <Link href="/leaderboard" className="px-8 py-4 bg-white/10 backdrop-blur rounded-xl font-bold text-lg hover:bg-white/20 transition">
-                      View Rankings
-                    </Link>
-                  </>
-                ) : (
-                  <div className="px-8 py-4 bg-gradient-to-r from-gray-600 to-gray-700 rounded-xl">
-                    Connect Wallet to Start
+            </div>
+
+            {/* Special Quiz Promotion */}
+            <div className="max-w-4xl mx-auto mb-12">
+              <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-1 rounded-2xl">
+                <div className="bg-slate-900 rounded-2xl p-8">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left">
+                      <h3 className="text-3xl font-bold mb-2 text-white">
+                        🎯 Perfect Score Challenge!
+                      </h3>
+                      <p className="text-xl text-gray-300 mb-2">
+                        Answer all 10 questions correctly about Base blockchain
+                      </p>
+                      <div className="flex items-center gap-4 justify-center md:justify-start">
+                        <span className="text-4xl font-bold text-yellow-400">100 LEARN</span>
+                        <span className="text-gray-400">tokens reward!</span>
+                      </div>
+                    </div>
+                    {isConnected ? (
+                      <Link 
+                        href="/quiz"
+                        className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl font-bold text-lg hover:scale-105 transition transform text-black"
+                      >
+                        Take Quiz Now →
+                      </Link>
+                    ) : (
+                      <button className="px-8 py-4 bg-gray-600 rounded-xl font-bold text-lg opacity-50 cursor-not-allowed">
+                        Connect Wallet First
+                      </button>
+                    )}
                   </div>
-                )}
+                  <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-slate-800/50 rounded-lg p-3">
+                      <div className="text-sm text-gray-400">Questions</div>
+                      <div className="text-xl font-bold">10</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-3">
+                      <div className="text-sm text-gray-400">Time Limit</div>
+                      <div className="text-xl font-bold">30 min</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-3">
+                      <div className="text-sm text-gray-400">Required</div>
+                      <div className="text-xl font-bold">100%</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
               <StatsCard 
                 icon="👥"
@@ -98,6 +132,7 @@ export default function Home() {
               />
             </div>
 
+            {/* Main Content Grid */}
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
                 <WeeklyChallenge />
@@ -107,7 +142,12 @@ export default function Home() {
                     <span className="text-3xl">🎯</span> Featured Quizzes
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {['DeFi Basics', 'Layer 2 Solutions', 'Smart Contracts 101', 'NFT Fundamentals'].map((topic, i) => (
+                    {[
+                      'DeFi Basics',
+                      'Layer 2 Solutions', 
+                      'Smart Contracts 101',
+                      'NFT Fundamentals'
+                    ].map((topic, i) => (
                       <div key={i} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition cursor-pointer">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold">{topic}</h4>
