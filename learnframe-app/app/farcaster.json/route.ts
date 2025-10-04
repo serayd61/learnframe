@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     "accountAssociation": {
-      "header": "YENİ_HEADER_DEĞERİ",
-      "payload": "YENİ_PAYLOAD_DEĞERİ",
-      "signature": "YENİ_SIGNATURE_DEĞERİ"
+      "header": "eyJmaWQiOjIwODY0NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGM1NjhlQTVjY0M2OEVkMDE5NDNFODQ3YWVDMTY2MTY3NTA2NDhENjUifQ",
+      "payload": "eyJkb21haW4iOiJsZWFybmZyYW1lLnZlcmNlbC5hcHAifQ",
+      "signature": "MHgxNDgxMTU1M2YxYzQyODk1NDlkNmY5MDNjNzhmYTFiODZhYjhjNmIyZDBlNjMyNWI2YzIwNzZhZTRkYjJlYjE5NmUyYWMzNTc1MTEyNTUyMjhmMDg0YTJkMWRiMzk1NmMyZTgzYmRkMzdlMmM1YmU4NDMyNGNiMTkyY2YzZDg2YjFi"
     },
     "frame": {
       "version": "1",
