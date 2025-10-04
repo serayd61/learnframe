@@ -52,28 +52,28 @@ export default function QuizPage() {
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
     abi: QuizManagerABI.abi,
     functionName: 'quizzes',
-    args: [1n],
+    args: [BigInt(1)],
   });
 
   const { data: quiz2 } = useReadContract({
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
     abi: QuizManagerABI.abi,
     functionName: 'quizzes',
-    args: [2n],
+    args: [BigInt(2)],
   });
 
   const { data: quiz3 } = useReadContract({
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
     abi: QuizManagerABI.abi,
     functionName: 'quizzes',
-    args: [3n],
+    args: [BigInt(3)],
   });
 
   const { data: quiz4 } = useReadContract({
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
     abi: QuizManagerABI.abi,
     functionName: 'quizzes',
-    args: [4n],
+    args: [BigInt(4)],
   });
 
   useEffect(() => {
