@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'LearnFrame - Learn to Earn Platform',
   description: 'Complete blockchain quizzes and earn LEARN tokens on Base',
   openGraph: {
-    title: 'LearnFrame - Learn to Earn Platform',
+    title: 'LearnFrame - Learn to Earn Platform', 
     description: 'Complete blockchain quizzes and earn LEARN tokens on Base',
     url: 'https://learnframe.vercel.app',
     siteName: 'LearnFrame',

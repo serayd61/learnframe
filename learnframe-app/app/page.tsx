@@ -4,18 +4,22 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { TokenBalance } from '@/components/TokenBalance';
-import { useEffect, useState } from 'react';
+import { useFarcaster } from '@/components/FarcasterProvider';
 
 export default function Home() {
   const { address, isConnected } = useAccount();
-  const [isInFrame, setIsInFrame] = useState(false);
+  const { context, user, isLoading } = useFarcaster();
 
-  useEffect(() => {
-    // Check if we're in a Farcaster frame/mini app
-    if (window.parent !== window || window.location !== window.parent.location) {
-      setIsInFrame(true);
-    }
-  }, []);
+  // Loading durumunda basit bir şey göster
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+        <div className="text-4xl animate-pulse">🎓</div>
+      </div>
+    );
+  }
+
+  const isInFrame = !!context;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
@@ -24,15 +28,16 @@ export default function Home() {
           <h1 className="text-2xl font-bold">🎓 LearnFrame</h1>
           <div className="flex items-center gap-4">
             {isConnected && <TokenBalance />}
-            <ConnectButton />
+            {!isInFrame && <ConnectButton />}
           </div>
         </div>
       </nav>
 
       <div className="container mx-auto p-6">
-        {isInFrame && (
-          <div className="bg-blue-600/20 border border-blue-600 rounded-lg p-4 mb-6">
-            <p>👋 Welcome from Farcaster!</p>
+        {isInFrame && user && (
+          <div className="bg-purple-600/20 border border-purple-600 rounded-lg p-4 mb-6">
+            <p>👋 Welcome from Farcaster, @{user.username}!</p>
+            <p className="text-sm opacity-80">FID: {user.fid}</p>
           </div>
         )}
 
@@ -42,10 +47,16 @@ export default function Home() {
             Complete quizzes, earn LEARN tokens, collect achievement NFTs
           </p>
           
-          {isConnected ? (
+          {isConnected || isInFrame ? (
             <div className="bg-slate-800 p-6 rounded-lg max-w-md mx-auto">
-              <p className="text-slate-300 mb-2">Connected as:</p>
-              <p className="font-mono text-sm mb-4">{address?.slice(0,6)}...{address?.slice(-4)}</p>
+              {isConnected && (
+                <>
+                  <p className="text-slate-300 mb-2">Wallet connected:</p>
+                  <p className="font-mono text-sm mb-4">
+                    {address?.slice(0,6)}...{address?.slice(-4)}
+                  </p>
+                </>
+              )}
               <Link 
                 href="/quiz"
                 className="block bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-bold"
