@@ -1,16 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Performance optimizations
   reactStrictMode: true,
-  swcMinify: true,
   
-  // Image optimization
   images: {
     domains: ['learnframe.vercel.app'],
     formats: ['image/avif', 'image/webp'],
   },
   
-  // Headers for Farcaster
   async headers() {
     return [
       {
@@ -18,7 +14,7 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'ALLOWALL', // Farcaster frame içinde açılabilmesi için
+            value: 'ALLOWALL',
           },
         ],
       },

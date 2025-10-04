@@ -5,22 +5,12 @@ import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { TokenBalance } from '@/components/TokenBalance';
 import SDKReady from '@/components/SDKReady';
-import Head from 'next/head';
 
 export default function Home() {
   const { address, isConnected } = useAccount();
 
   return (
     <>
-      <Head>
-        <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="https://learnframe.vercel.app/api/preview" />
-        <meta property="fc:frame:button:1" content="Launch App" />
-        <meta property="fc:frame:button:1:action" content="launch_frame" />
-        <meta property="fc:frame:button:1:target" content="https://learnframe.vercel.app" />
-        <meta property="of:accepts:farcaster" content="vNext" />
-      </Head>
-      
       <SDKReady />
       
       <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
