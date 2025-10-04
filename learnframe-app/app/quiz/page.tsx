@@ -4,7 +4,7 @@ import { QuizCard } from '@/components/QuizCard';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useReadContract } from 'wagmi';
 import QuizManagerABI from '@/lib/contracts/QuizManager.json';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface QuizData {
   quizId: number;
@@ -21,7 +21,7 @@ export default function QuizPage() {
   const { isConnected } = useAccount();
   const [quizzes, setQuizzes] = useState<QuizData[]>([]);
 
-  const quizQuestions = [
+  const quizQuestions = useMemo(() => [
     {
       quizId: 1,
       question: "What is the native token of Base blockchain?",
@@ -46,7 +46,7 @@ export default function QuizPage() {
       options: ["Layer 1", "Layer 2", "Sidechain", "Layer 3"],
       correctAnswer: "Layer 2"
     }
-  ];
+  ], []);
 
   const { data: quiz1 } = useReadContract({
     address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
@@ -77,22 +77,31 @@ export default function QuizPage() {
   });
 
   useEffect(() => {
-    const quizData = [quiz1, quiz2, quiz3, quiz4] as any[];
+    const quizData: unknown[] = [quiz1, quiz2, quiz3, quiz4];
     const formattedQuizzes = quizQuestions.map((q, index) => {
-      const contractData = quizData[index];
+      const contractData = quizData[index] as readonly [
+        string, // creator
+        string, // answerHash
+        bigint, // reward
+        string, // category
+        number, // difficulty
+        bigint, // completions
+        boolean // active
+      ] | undefined;
+      
       if (!contractData) return null;
       
       return {
         ...q,
         reward: Number(contractData[2]),
-        category: contractData[3] as string,
+        category: contractData[3],
         difficulty: Number(contractData[4]),
-        active: contractData[6] as boolean
+        active: contractData[6]
       };
     }).filter((q): q is QuizData => q !== null && q.active);
     
     setQuizzes(formattedQuizzes);
-  }, [quiz1, quiz2, quiz3, quiz4]);
+  }, [quiz1, quiz2, quiz3, quiz4, quizQuestions]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
