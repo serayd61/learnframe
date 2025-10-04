@@ -4,6 +4,7 @@
   "subtitle": "Learn & Earn on Base",
   "description": "Educational quiz platform on Base blockchain. Complete quizzes, earn LEARN tokens, and collect achievement NFTs.",
   "primaryCategory": "education",
+  "splashImageUrl": "https://learnframe.vercel.app/splash.svg",
   "splashBackgroundColor": "#1e293b",
   "tags": ["blockchain", "education", "quiz", "learn", "earn", "base", "web3"],
   "tagline": "Master blockchain, earn rewards",
