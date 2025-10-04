@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import QuizManagerABI from '@/lib/contracts/QuizManager.json';
 
@@ -15,19 +15,24 @@ interface QuizCardProps {
 
 export function QuizCard({ quizId, question, options, reward, category, difficulty }: QuizCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
-
-  const { writeContract, data: hash } = useWriteContract();
+  const [error, setError] = useState('');
+  
+  const { writeContract, data: hash, error: writeError } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash: txHash,
+    hash,
   });
+
+  useEffect(() => {
+    if (writeError) {
+      setError(writeError.message);
+    }
+  }, [writeError]);
 
   const handleSubmit = async () => {
     if (!selectedAnswer) return;
     
-    setIsSubmitting(true);
+    setError('');
     try {
       writeContract({
         address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
@@ -35,22 +40,10 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
         functionName: 'submitAnswer',
         args: [BigInt(quizId), selectedAnswer],
       });
-      
-      // hash will be available after writeContract succeeds
-      if (hash) {
-        setTxHash(hash);
-      }
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-    } finally {
-      setIsSubmitting(false);
+    } catch (err: any) {
+      setError(err.message || 'Transaction failed');
     }
   };
-
-  // Update txHash when hash changes
-  if (hash && hash !== txHash) {
-    setTxHash(hash);
-  }
 
   return (
     <div className="bg-slate-800 rounded-lg p-6">
@@ -67,7 +60,7 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
           <button
             key={index}
             onClick={() => setSelectedAnswer(option)}
-            disabled={isSubmitting || isConfirming}
+            disabled={isConfirming}
             className={`w-full text-left p-3 rounded transition-colors ${
               selectedAnswer === option 
                 ? 'bg-blue-600' 
@@ -81,15 +74,21 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
       
       <button
         onClick={handleSubmit}
-        disabled={!selectedAnswer || isSubmitting || isConfirming}
+        disabled={!selectedAnswer || isConfirming}
         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-3 rounded font-bold disabled:opacity-50 transition-opacity"
       >
-        {isConfirming ? 'Confirming...' : isSubmitting ? 'Submitting...' : 'Submit Answer'}
+        {isConfirming ? 'Confirming...' : 'Submit Answer'}
       </button>
       
       {isSuccess && (
         <div className="mt-4 p-3 bg-green-600/20 border border-green-600 rounded">
-          ✅ Answer submitted successfully!
+          ✅ Answer submitted successfully! +{reward} LEARN earned!
+        </div>
+      )}
+      
+      {error && (
+        <div className="mt-4 p-3 bg-red-600/20 border border-red-600 rounded text-sm">
+          ❌ Error: {error}
         </div>
       )}
     </div>

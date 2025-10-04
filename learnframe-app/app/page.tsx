@@ -3,6 +3,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
+import { TokenBalance } from '@/components/TokenBalance';
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -12,7 +13,10 @@ export default function Home() {
       <nav className="border-b border-slate-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold">🎓 LearnFrame</h1>
-          <ConnectButton />
+          <div className="flex items-center gap-4">
+            {isConnected && <TokenBalance />}
+            <ConnectButton />
+          </div>
         </div>
       </nav>
 
@@ -37,24 +41,6 @@ export default function Home() {
           ) : (
             <p className="text-slate-400">Connect your wallet to start</p>
           )}
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 mt-20">
-          <div className="bg-slate-800 p-6 rounded-lg text-center">
-            <div className="text-3xl mb-2">📚</div>
-            <h3 className="font-bold mb-2">Learn</h3>
-            <p className="text-slate-400">Interactive blockchain quizzes</p>
-          </div>
-          <div className="bg-slate-800 p-6 rounded-lg text-center">
-            <div className="text-3xl mb-2">💰</div>
-            <h3 className="font-bold mb-2">Earn</h3>
-            <p className="text-slate-400">Get LEARN tokens for correct answers</p>
-          </div>
-          <div className="bg-slate-800 p-6 rounded-lg text-center">
-            <div className="text-3xl mb-2">🏆</div>
-            <h3 className="font-bold mb-2">Achieve</h3>
-            <p className="text-slate-400">Collect NFT achievements</p>
-          </div>
         </div>
       </div>
     </main>
