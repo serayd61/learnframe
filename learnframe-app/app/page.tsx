@@ -10,18 +10,16 @@ import { StatsCard } from '@/components/StatsCard';
 import SDKReady from '@/components/SDKReady';
 
 export default function Home() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
 
   return (
     <>
       <SDKReady />
       
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-gradient-xy"></div>
         
         <div className="relative z-10">
-          {/* Navigation */}
           <nav className="border-b border-white/10 backdrop-blur-lg bg-black/20">
             <div className="container mx-auto px-4 py-4">
               <div className="flex justify-between items-center">
@@ -43,7 +41,6 @@ export default function Home() {
             </div>
           </nav>
 
-          {/* Hero Section */}
           <div className="container mx-auto px-4 py-12">
             <div className="text-center mb-12">
               <h2 className="text-5xl md:text-7xl font-bold text-white mb-4">
@@ -70,7 +67,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
               <StatsCard 
                 icon="👥"
@@ -102,13 +98,10 @@ export default function Home() {
               />
             </div>
 
-            {/* Main Content Grid */}
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left Column - Weekly Challenge & Featured Quiz */}
               <div className="lg:col-span-2 space-y-6">
                 <WeeklyChallenge />
                 
-                {/* Featured Quizzes */}
                 <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
                   <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
                     <span className="text-3xl">🎯</span> Featured Quizzes
@@ -140,7 +133,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Column - Leaderboard */}
               <div>
                 <Leaderboard />
               </div>

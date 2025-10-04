@@ -5,8 +5,15 @@ import { useReadContract } from 'wagmi';
 import LeaderboardABI from '@/lib/contracts/Leaderboard.json';
 import Link from 'next/link';
 
+interface User {
+  rank: number;
+  address: string;
+  score: number;
+  change?: string;
+}
+
 export function Leaderboard() {
-  const [topUsers, setTopUsers] = useState<any[]>([]);
+  const [topUsers, setTopUsers] = useState<User[]>([]);
 
   const { data: leaderboardData } = useReadContract({
     address: process.env.NEXT_PUBLIC_LEADERBOARD as `0x${string}`,
@@ -27,7 +34,7 @@ export function Leaderboard() {
     }
   }, [leaderboardData]);
 
-  const mockUsers = [
+  const mockUsers: User[] = [
     { rank: 1, address: '0x742d...5c3f', score: 2840, change: 'up' },
     { rank: 2, address: '0x8f3a...9d2e', score: 2650, change: 'up' },
     { rank: 3, address: '0x3c9f...7a8b', score: 2420, change: 'down' },
