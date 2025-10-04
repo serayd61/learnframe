@@ -18,7 +18,7 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
 
-  const { writeContract } = useWriteContract();
+  const { writeContract, data: hash } = useWriteContract();
   
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -29,19 +29,28 @@ export function QuizCard({ quizId, question, options, reward, category, difficul
     
     setIsSubmitting(true);
     try {
-      const hash = await writeContract({
+      writeContract({
         address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
         abi: QuizManagerABI.abi,
         functionName: 'submitAnswer',
         args: [BigInt(quizId), selectedAnswer],
       });
       
-      setTxHash(hash);
+      // hash will be available after writeContract succeeds
+      if (hash) {
+        setTxHash(hash);
+      }
     } catch (error) {
       console.error('Error submitting answer:', error);
+    } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Update txHash when hash changes
+  if (hash && hash !== txHash) {
+    setTxHash(hash);
+  }
 
   return (
     <div className="bg-slate-800 rounded-lg p-6">

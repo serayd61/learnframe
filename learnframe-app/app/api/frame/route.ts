@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const frameHtml = `
 <!DOCTYPE html>
 <html>
@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
   let responseFrame = '';
   
   if (buttonIndex === 1) {
-    // Quiz başlat
     responseFrame = `
 <!DOCTYPE html>
 <html>
@@ -51,7 +50,6 @@ export async function POST(req: NextRequest) {
 </html>
     `;
   } else {
-    // Leaderboard göster
     responseFrame = `
 <!DOCTYPE html>
 <html>
