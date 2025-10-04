@@ -89,9 +89,10 @@ export function BatchQuiz() {
         abi: BATCH_QUIZ_ABI,
         functionName: 'startQuizSession',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error starting quiz:', error);
-      setError(error?.message || 'Failed to start quiz session');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start quiz session';
+      setError(errorMessage);
     }
   };
 
@@ -135,9 +136,10 @@ export function BatchQuiz() {
         args: [answers],
       });
       setQuizCompleted(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting answers:', error);
-      setError(error?.message || 'Failed to submit answers');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit answers';
+      setError(errorMessage);
     }
   };
 
