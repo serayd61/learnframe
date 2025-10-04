@@ -1,0 +1,14 @@
+{
+  "name": "LearnFrame",
+  "iconUrl": "https://learnframe.vercel.app/icon.svg",
+  "subtitle": "Learn & Earn on Base",
+  "description": "Educational quiz platform on Base blockchain. Complete quizzes, earn LEARN tokens, and collect achievement NFTs.",
+  "primaryCategory": "education",
+  "splashBackgroundColor": "#1e293b",
+  "tags": ["blockchain", "education", "quiz", "learn", "earn", "base", "web3"],
+  "tagline": "Master blockchain, earn rewards",
+  "buttonTitle": "Start Learning",
+  "ogTitle": "LearnFrame - Learn to Earn Platform",
+  "ogDescription": "Complete blockchain quizzes and earn LEARN tokens on Base",
+  "homeUrl": "https://learnframe.vercel.app"
+}
