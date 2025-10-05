@@ -1,37 +1,146 @@
 'use client';
 
-import { BatchQuiz } from '@/components/BatchQuiz';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { BatchQuiz } from '@/components/BatchQuiz';
+import Link from 'next/link';
 import { useAccount } from 'wagmi';
+import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 export default function QuizPage() {
   const { isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
+  const [particles, setParticles] = useState<{ x: number; y: number; id: number }[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+    // Create floating particles
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      id: i
+    }));
+    setParticles(newParticles);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10"></div>
-      
-      <div className="relative z-10">
-        <nav className="border-b border-white/10 backdrop-blur-lg bg-black/20 p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-2xl font-bold">🎓 LearnFrame Quiz</h1>
+    <main className="min-h-screen bg-black overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-black to-purple-900/20"></div>
+        
+        {/* Floating Particles */}
+        {particles.map((particle) => (
+          <motion.div
+            key={particle.id}
+            className="absolute w-1 h-1 bg-purple-400 rounded-full"
+            style={{ left: `${particle.x}%`, top: `${particle.y}%` }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+        
+        {/* Gradient Orbs */}
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+          }}
+          className="absolute top-1/3 -left-20 w-96 h-96 bg-indigo-500 rounded-full filter blur-[150px] opacity-20"
+        />
+        <motion.div
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [360, 180, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+          }}
+          className="absolute bottom-1/3 -right-20 w-96 h-96 bg-purple-500 rounded-full filter blur-[150px] opacity-20"
+        />
+      </div>
+
+      {/* Navbar */}
+      <nav className="relative z-50 border-b border-white/10 backdrop-blur-xl bg-black/50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center space-x-8"
+            >
+              <Link href="/" className="flex items-center space-x-2 group">
+                <span className="text-3xl group-hover:animate-bounce">🎓</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  LearnFrame
+                </span>
+              </Link>
+              <div className="hidden md:flex items-center space-x-6">
+                <Link href="/quiz" className="relative group">
+                  <span className="text-white font-semibold">Quiz</span>
+                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-400 to-purple-400"></span>
+                </Link>
+                <Link href="/leaderboard" className="text-gray-300 hover:text-white transition">
+                  Leaderboard
+                </Link>
+                <Link href="/rewards" className="text-gray-300 hover:text-white transition">
+                  Rewards
+                </Link>
+              </div>
+            </motion.div>
             <ConnectButton />
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        <div className="container mx-auto p-6 mt-8">
-          {isConnected ? (
-            <BatchQuiz />
-          ) : (
-            <div className="text-center py-20">
-              <h2 className="text-4xl font-bold mb-4">Connect Your Wallet</h2>
-              <p className="text-xl text-gray-300 mb-8">
-                Connect your wallet to start the quiz
-              </p>
+      {/* Main Content */}
+      <div className="relative z-10 container mx-auto px-6 py-12">
+        {!isConnected ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-2xl mx-auto text-center mt-20"
+          >
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-8xl mb-8"
+            >
+              🔐
+            </motion.div>
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              Connect Your Wallet
+            </h2>
+            <p className="text-xl text-gray-400 mb-8">
+              Please connect your wallet to start the quiz
+            </p>
+            <div className="inline-block">
               <ConnectButton />
             </div>
-          )}
-        </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <BatchQuiz />
+          </motion.div>
+        )}
       </div>
     </main>
   );
