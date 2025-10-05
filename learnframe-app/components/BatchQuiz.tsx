@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -96,10 +96,11 @@ const BATCH_QUIZ_ABI = [
 ];
 
 const QUIZ_CONTRACT = '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
-const QUIZ_DURATION = 120; // 2 minutes in seconds
+const QUIZ_DURATION = 120;
 
 export function BatchQuiz() {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>(new Array(10).fill(''));
   const [quizPhase, setQuizPhase] = useState<'welcome' | 'starting' | 'quiz' | 'submitting' | 'done'>('welcome');
@@ -109,19 +110,65 @@ export function BatchQuiz() {
   const [quizStartTime, setQuizStartTime] = useState<number | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   
-  const { writeContract: startSession, data: startHash } = useWriteContract();
-  const { isSuccess: startSuccess } = useWaitForTransactionReceipt({ hash: startHash });
+  const { 
+    writeContract: startSession, 
+    data: startHash,
+    isPending: isStartPending,
+    isError: isStartError,
+    error: startError 
+  } = useWriteContract();
   
-  const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
-  const { isSuccess: submitSuccess } = useWaitForTransactionReceipt({ hash: submitHash });
+  const { 
+    isLoading: isStartConfirming,
+    isSuccess: startSuccess 
+  } = useWaitForTransactionReceipt({ 
+    hash: startHash,
+  });
+  
+  const { 
+    writeContract: submitAnswers, 
+    data: submitHash,
+    isPending: isSubmitPending,
+    isError: isSubmitError,
+    error: submitError
+  } = useWriteContract();
+  
+  const { 
+    isLoading: isSubmitConfirming,
+    isSuccess: submitSuccess 
+  } = useWaitForTransactionReceipt({ 
+    hash: submitHash,
+  });
 
-  // Timer logic
+  useEffect(() => {
+    if (!isConnected) {
+      setError('Please connect your wallet first');
+    } else {
+      setError('');
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (isStartError && startError) {
+      console.error('Start transaction error:', startError);
+      setError(`Failed to start: ${startError.message || 'Transaction rejected'}`);
+      setQuizPhase('welcome');
+    }
+  }, [isStartError, startError]);
+
+  useEffect(() => {
+    if (isSubmitError && submitError) {
+      console.error('Submit transaction error:', submitError);
+      setError(`Failed to submit: ${submitError.message || 'Transaction rejected'}`);
+      setQuizPhase('quiz');
+    }
+  }, [isSubmitError, submitError]);
+
   useEffect(() => {
     if (quizPhase === 'quiz' && timeRemaining > 0) {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            // Auto-submit when time runs out
             handleSubmitAll();
             return 0;
           }
@@ -134,19 +181,23 @@ export function BatchQuiz() {
   }, [quizPhase, timeRemaining]);
 
   useEffect(() => {
+    console.log('Start status:', { startSuccess, quizPhase, startHash });
     if (startSuccess && quizPhase === 'starting') {
+      console.log('Quiz starting successfully!');
       setQuizPhase('quiz');
       setQuizStartTime(Date.now());
       setTimeRemaining(QUIZ_DURATION);
       setError('');
     }
-  }, [startSuccess, quizPhase]);
+  }, [startSuccess, quizPhase, startHash]);
 
   useEffect(() => {
+    console.log('Submit status:', { submitSuccess, quizPhase, submitHash });
     if (submitSuccess && quizPhase === 'submitting') {
+      console.log('Quiz submitted successfully!');
       setQuizPhase('done');
     }
-  }, [submitSuccess, quizPhase]);
+  }, [submitSuccess, quizPhase, submitHash]);
 
   useEffect(() => {
     if (quizPhase === 'done') {
@@ -171,18 +222,27 @@ export function BatchQuiz() {
   };
 
   const handleStartQuiz = async () => {
+    if (!isConnected || !address) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
     try {
       setError('');
       setQuizPhase('starting');
+      
+      console.log('Starting quiz session...');
       
       await startSession({
         address: QUIZ_CONTRACT as `0x${string}`,
         abi: BATCH_QUIZ_ABI,
         functionName: 'startQuizSession',
       });
-    } catch (err) {
+      
+      console.log('Start transaction sent');
+    } catch (err: any) {
       console.error('Start error:', err);
-      setError('Failed to start. Please try again.');
+      setError(err?.message || 'Failed to start. Please try again.');
       setQuizPhase('welcome');
     }
   };
@@ -193,20 +253,22 @@ export function BatchQuiz() {
     newAnswers[currentQuestion] = option;
     setAnswers(newAnswers);
     
-    // Auto-advance after selection with a small delay
     setTimeout(() => {
       if (currentQuestion < 9) {
         setCurrentQuestion(currentQuestion + 1);
         setSelectedOption(null);
       } else {
-        // If it's the last question, show submit button
         setSelectedOption(option);
       }
     }, 300);
   };
 
   const handleSubmitAll = useCallback(async () => {
-    // Fill empty answers with first option as default
+    if (!isConnected || !address) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
     const finalAnswers = answers.map((answer, index) => 
       answer || QUIZ_QUESTIONS[index].options[0]
     );
@@ -215,18 +277,22 @@ export function BatchQuiz() {
       setError('');
       setQuizPhase('submitting');
       
+      console.log('Submitting answers:', finalAnswers);
+      
       await submitAnswers({
         address: QUIZ_CONTRACT as `0x${string}`,
         abi: BATCH_QUIZ_ABI,
         functionName: 'submitBatchAnswers',
-        args: [finalAnswers],
+        args: [finalAnswers as any],
       });
-    } catch (err) {
+      
+      console.log('Submit transaction sent');
+    } catch (err: any) {
       console.error('Submit error:', err);
-      setError('Failed to submit. Please try again.');
+      setError(err?.message || 'Failed to submit. Please try again.');
       setQuizPhase('quiz');
     }
-  }, [answers, submitAnswers]);
+  }, [answers, submitAnswers, isConnected, address]);
 
   const checkAnswers = () => {
     let correct = 0;
@@ -237,6 +303,28 @@ export function BatchQuiz() {
     });
     return correct;
   };
+
+  if (!isConnected) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-4xl mx-auto"
+      >
+        <div className="bg-gradient-to-br from-red-600/10 via-orange-600/10 to-yellow-600/10 backdrop-blur-xl rounded-3xl p-12 border border-red-500/30">
+          <div className="text-center">
+            <span className="text-6xl mb-6 block">🔒</span>
+            <h2 className="text-3xl font-bold mb-4 text-red-400">
+              Wallet Not Connected
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Please connect your MetaMask wallet to start the quiz
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (quizPhase === 'welcome') {
     return (
@@ -350,9 +438,12 @@ export function BatchQuiz() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleStartQuiz}
-              className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-2xl font-bold text-xl text-white shadow-2xl transition-all duration-300 relative overflow-hidden group"
+              disabled={isStartPending || !isConnected}
+              className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl font-bold text-xl text-white shadow-2xl transition-all duration-300 relative overflow-hidden group"
             >
-              <span className="relative z-10">Start 2-Minute Challenge</span>
+              <span className="relative z-10">
+                {isStartPending ? 'Confirming...' : 'Start 2-Minute Challenge'}
+              </span>
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600"
                 initial={{ x: "-100%" }}
@@ -361,6 +452,17 @@ export function BatchQuiz() {
               />
               <span className="ml-2 text-2xl">⚡</span>
             </motion.button>
+            
+            {address && (
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center mt-4 text-sm text-gray-400"
+              >
+                Connected: {address.slice(0, 6)}...{address.slice(-4)}
+              </motion.p>
+            )}
           </div>
         </div>
       </motion.div>
@@ -384,9 +486,11 @@ export function BatchQuiz() {
               <div className="w-24 h-24 border-4 border-purple-500 border-t-transparent rounded-full"></div>
             </motion.div>
             <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Preparing Your Challenge
+              {isStartConfirming ? 'Confirming Transaction...' : 'Preparing Your Challenge'}
             </h2>
-            <p className="text-gray-300 mb-2">Confirm transaction to begin</p>
+            <p className="text-gray-300 mb-2">
+              {isStartPending ? 'Please confirm in MetaMask' : 'Waiting for confirmation...'}
+            </p>
             {startHash && (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -394,7 +498,18 @@ export function BatchQuiz() {
                 className="mt-6 p-4 bg-black/30 rounded-lg"
               >
                 <p className="text-sm text-gray-400">Transaction Hash:</p>
-                <p className="text-xs font-mono text-purple-400">{startHash.slice(0,20)}...{startHash.slice(-18)}</p>
+                <p className="text-xs font-mono text-purple-400 break-all">
+                  {startHash}
+                </p>
+              </motion.div>
+            )}
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 bg-red-500/20 border border-red-500 rounded-lg p-4"
+              >
+                <p className="text-red-300">{error}</p>
               </motion.div>
             )}
           </div>
@@ -417,7 +532,6 @@ export function BatchQuiz() {
         className="max-w-4xl mx-auto"
       >
         <div className="bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-pink-600/10 backdrop-blur-xl rounded-3xl p-8 border border-white/10">
-          {/* Timer Bar */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <motion.span 
@@ -438,20 +552,19 @@ export function BatchQuiz() {
                     ? 'bg-gradient-to-r from-red-500 to-orange-500' 
                     : 'bg-gradient-to-r from-green-500 to-emerald-500'
                 } rounded-full`}
-                animate={{ width: `${timeProgress}%` }}
+                style={{ width: `${timeProgress}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
             <div className="relative h-3 bg-black/30 rounded-full overflow-hidden">
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                animate={{ width: `${progress}%` }}
+                style={{ width: `${progress}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
           </div>
 
-          {/* Question Card */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuestion}
@@ -473,10 +586,9 @@ export function BatchQuiz() {
                   <h3 className="text-2xl font-bold flex-1">{question.question}</h3>
                 </div>
                 
-                {/* Multiple Choice Options */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {question.options.map((option, index) => {
-                    const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
+                    const optionLetter = String.fromCharCode(65 + index);
                     const isSelected = answers[currentQuestion] === option;
                     
                     return (
@@ -521,7 +633,6 @@ export function BatchQuiz() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Question Quick Navigation */}
           <div className="flex justify-center gap-2 mb-6">
             {answers.map((answer, i) => (
               <motion.button
@@ -543,7 +654,6 @@ export function BatchQuiz() {
             ))}
           </div>
 
-          {/* Navigation/Submit */}
           <div className="flex justify-between gap-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -565,9 +675,10 @@ export function BatchQuiz() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSubmitAll}
-                className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-xl font-bold text-xl text-white shadow-2xl"
+                disabled={isSubmitPending}
+                className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 rounded-xl font-bold text-xl text-white shadow-2xl"
               >
-                Submit Quiz ✓
+                {isSubmitPending ? 'Submitting...' : 'Submit Quiz ✓'}
               </motion.button>
             ) : (
               <motion.button
@@ -587,7 +698,6 @@ export function BatchQuiz() {
             )}
           </div>
 
-          {/* Auto-submit warning */}
           {isTimeRunningOut && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -595,6 +705,16 @@ export function BatchQuiz() {
               className="mt-4 text-center text-red-400 font-semibold"
             >
               ⚠️ Less than 30 seconds remaining! Quiz will auto-submit when time runs out.
+            </motion.div>
+          )}
+          
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 bg-red-500/20 border border-red-500 rounded-lg p-4"
+            >
+              <p className="text-red-300">{error}</p>
             </motion.div>
           )}
         </div>
@@ -626,9 +746,11 @@ export function BatchQuiz() {
             </motion.div>
             
             <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-              Verifying Your Answers
+              {isSubmitConfirming ? 'Confirming Submission...' : 'Verifying Your Answers'}
             </h2>
-            <p className="text-gray-300 mb-2">Calculating your score on the blockchain...</p>
+            <p className="text-gray-300 mb-2">
+              {isSubmitPending ? 'Please confirm in MetaMask' : 'Calculating your score on the blockchain...'}
+            </p>
             
             {submitHash && (
               <motion.div 
@@ -637,7 +759,30 @@ export function BatchQuiz() {
                 className="mt-6 p-4 bg-black/30 rounded-lg"
               >
                 <p className="text-sm text-gray-400">Transaction Hash:</p>
-                <p className="text-xs font-mono text-green-400">{submitHash.slice(0,20)}...{submitHash.slice(-18)}</p>
+                <p className="text-xs font-mono text-green-400 break-all">
+                  {submitHash}
+                </p>
+              </motion.div>
+            )}
+            
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 bg-red-500/20 border border-red-500 rounded-lg p-4"
+              >
+                <p className="text-red-300">{error}</p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setError('');
+                    setQuizPhase('quiz');
+                  }}
+                  className="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-white"
+                >
+                  Back to Quiz
+                </motion.button>
               </motion.div>
             )}
           </div>
@@ -690,7 +835,6 @@ export function BatchQuiz() {
               </p>
             </motion.div>
             
-            {/* Answer Review */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
