@@ -1,21 +1,81 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QUIZ_QUESTIONS = [
-  { id: 1, question: "What is the native token of Base?", answer: "ETH", hint: "3 letters", emoji: "💎" },
-  { id: 2, question: "Which company developed Base?", answer: "Coinbase", hint: "8 letters", emoji: "🏢" },
-  { id: 3, question: "What is Base built on?", answer: "Optimism", hint: "8 letters", emoji: "🔧" },
-  { id: 4, question: "Is Base EVM compatible? (yes/no)", answer: "Yes", hint: "3 letters", emoji: "✅" },
-  { id: 5, question: "What type of network is Base? (Layer1/Layer2)", answer: "Layer2", hint: "6 letters", emoji: "🔄" },
-  { id: 6, question: "What is Base's underlying blockchain?", answer: "Ethereum", hint: "8 letters", emoji: "⛓️" },
-  { id: 7, question: "What year was Base launched?", answer: "2023", hint: "4 digits", emoji: "📅" },
-  { id: 8, question: "What type of rollup is Base? (Optimistic/ZK)", answer: "Optimistic", hint: "10 letters", emoji: "🚀" },
-  { id: 9, question: "Are gas fees on Base higher or lower than Ethereum?", answer: "Lower", hint: "5 letters", emoji: "💰" },
-  { id: 10, question: "What is the name of Base's major upgrade?", answer: "Bedrock", hint: "7 letters", emoji: "🪨" }
+  { 
+    id: 1, 
+    question: "What is the native token of Base?",
+    options: ["ETH", "BASE", "USDC", "BTC"],
+    answer: "ETH",
+    emoji: "💎"
+  },
+  { 
+    id: 2, 
+    question: "Which company developed Base?",
+    options: ["Binance", "Coinbase", "Kraken", "OpenSea"],
+    answer: "Coinbase",
+    emoji: "🏢"
+  },
+  { 
+    id: 3, 
+    question: "What is Base built on?",
+    options: ["Polygon", "Arbitrum", "Optimism", "Avalanche"],
+    answer: "Optimism",
+    emoji: "🔧"
+  },
+  { 
+    id: 4, 
+    question: "Is Base EVM compatible?",
+    options: ["Yes", "No", "Partially", "Only for NFTs"],
+    answer: "Yes",
+    emoji: "✅"
+  },
+  { 
+    id: 5, 
+    question: "What type of network is Base?",
+    options: ["Layer1", "Layer2", "Layer3", "Sidechain"],
+    answer: "Layer2",
+    emoji: "🔄"
+  },
+  { 
+    id: 6, 
+    question: "What is Base's underlying blockchain?",
+    options: ["Bitcoin", "Solana", "Ethereum", "Cardano"],
+    answer: "Ethereum",
+    emoji: "⛓️"
+  },
+  { 
+    id: 7, 
+    question: "What year was Base launched?",
+    options: ["2021", "2022", "2023", "2024"],
+    answer: "2023",
+    emoji: "📅"
+  },
+  { 
+    id: 8, 
+    question: "What type of rollup is Base?",
+    options: ["Optimistic", "ZK", "Hybrid", "Plasma"],
+    answer: "Optimistic",
+    emoji: "🚀"
+  },
+  { 
+    id: 9, 
+    question: "Are gas fees on Base higher or lower than Ethereum?",
+    options: ["Higher", "Lower", "Same", "Variable"],
+    answer: "Lower",
+    emoji: "💰"
+  },
+  { 
+    id: 10, 
+    question: "What is the name of Base's major upgrade?",
+    options: ["Granite", "Diamond", "Bedrock", "Crystal"],
+    answer: "Bedrock",
+    emoji: "🪨"
+  }
 ];
 
 const BATCH_QUIZ_ABI = [
@@ -36,6 +96,7 @@ const BATCH_QUIZ_ABI = [
 ];
 
 const QUIZ_CONTRACT = '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
+const QUIZ_DURATION = 120; // 2 minutes in seconds
 
 export function BatchQuiz() {
   const router = useRouter();
@@ -44,7 +105,9 @@ export function BatchQuiz() {
   const [quizPhase, setQuizPhase] = useState<'welcome' | 'starting' | 'quiz' | 'submitting' | 'done'>('welcome');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(5);
-  const [showHint, setShowHint] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(QUIZ_DURATION);
+  const [quizStartTime, setQuizStartTime] = useState<number | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   
   const { writeContract: startSession, data: startHash } = useWriteContract();
   const { isSuccess: startSuccess } = useWaitForTransactionReceipt({ hash: startHash });
@@ -52,9 +115,29 @@ export function BatchQuiz() {
   const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
   const { isSuccess: submitSuccess } = useWaitForTransactionReceipt({ hash: submitHash });
 
+  // Timer logic
+  useEffect(() => {
+    if (quizPhase === 'quiz' && timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            // Auto-submit when time runs out
+            handleSubmitAll();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [quizPhase, timeRemaining]);
+
   useEffect(() => {
     if (startSuccess && quizPhase === 'starting') {
       setQuizPhase('quiz');
+      setQuizStartTime(Date.now());
+      setTimeRemaining(QUIZ_DURATION);
       setError('');
     }
   }, [startSuccess, quizPhase]);
@@ -81,6 +164,12 @@ export function BatchQuiz() {
     }
   }, [quizPhase, router]);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleStartQuiz = async () => {
     try {
       setError('');
@@ -98,11 +187,29 @@ export function BatchQuiz() {
     }
   };
 
-  const handleSubmitAll = async () => {
-    if (answers.some(a => !a.trim())) {
-      setError('Please answer all questions!');
-      return;
-    }
+  const handleOptionSelect = (option: string) => {
+    setSelectedOption(option);
+    const newAnswers = [...answers];
+    newAnswers[currentQuestion] = option;
+    setAnswers(newAnswers);
+    
+    // Auto-advance after selection with a small delay
+    setTimeout(() => {
+      if (currentQuestion < 9) {
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedOption(null);
+      } else {
+        // If it's the last question, show submit button
+        setSelectedOption(option);
+      }
+    }, 300);
+  };
+
+  const handleSubmitAll = useCallback(async () => {
+    // Fill empty answers with first option as default
+    const finalAnswers = answers.map((answer, index) => 
+      answer || QUIZ_QUESTIONS[index].options[0]
+    );
 
     try {
       setError('');
@@ -112,30 +219,23 @@ export function BatchQuiz() {
         address: QUIZ_CONTRACT as `0x${string}`,
         abi: BATCH_QUIZ_ABI,
         functionName: 'submitBatchAnswers',
-        args: [answers],
+        args: [finalAnswers],
       });
     } catch (err) {
       console.error('Submit error:', err);
       setError('Failed to submit. Please try again.');
       setQuizPhase('quiz');
     }
-  };
+  }, [answers, submitAnswers]);
 
   const checkAnswers = () => {
     let correct = 0;
     answers.forEach((answer, i) => {
-      if (answer.toLowerCase() === QUIZ_QUESTIONS[i].answer.toLowerCase()) {
+      if (answer === QUIZ_QUESTIONS[i].answer) {
         correct++;
       }
     });
     return correct;
-  };
-
-  const handleAnswerChange = (value: string) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = value;
-    setAnswers(newAnswers);
-    setShowHint(false);
   };
 
   if (quizPhase === 'welcome') {
@@ -146,7 +246,6 @@ export function BatchQuiz() {
         className="max-w-4xl mx-auto"
       >
         <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-pink-600/10 backdrop-blur-xl rounded-3xl p-12 border border-white/10">
-          {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             {Array.from({ length: 6 }, (_, i) => (
               <motion.div
@@ -158,9 +257,7 @@ export function BatchQuiz() {
                   left: `${-100 + i * 20}px`,
                   top: `${-100 + i * 20}px`,
                 }}
-                animate={{
-                  rotate: 360,
-                }}
+                animate={{ rotate: 360 }}
                 transition={{
                   duration: 20 + i * 5,
                   repeat: Infinity,
@@ -174,7 +271,6 @@ export function BatchQuiz() {
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
               className="text-center mb-8"
             >
               <span className="text-6xl">🎯</span>
@@ -183,16 +279,16 @@ export function BatchQuiz() {
             <motion.h2 
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.1 }}
               className="text-5xl font-bold mb-6 text-center bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
             >
-              Base Blockchain Quiz
+              Base Blockchain Challenge
             </motion.h2>
             
             <motion.div 
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.2 }}
               className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-2xl p-8 mb-8"
             >
               <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300 flex items-center justify-center gap-3">
@@ -204,33 +300,34 @@ export function BatchQuiz() {
                 </motion.span>
                 Win 100 LEARN Tokens!
               </h3>
+              
               <div className="grid md:grid-cols-2 gap-4 mt-6">
                 <div className="bg-black/30 rounded-lg p-4 flex items-center gap-3">
                   <span className="text-2xl">📝</span>
                   <div>
                     <p className="font-semibold">10 Questions</p>
-                    <p className="text-sm text-gray-400">About Base blockchain</p>
+                    <p className="text-sm text-gray-400">Multiple choice (A,B,C,D)</p>
                   </div>
                 </div>
                 <div className="bg-black/30 rounded-lg p-4 flex items-center gap-3">
                   <span className="text-2xl">⏱️</span>
                   <div>
-                    <p className="font-semibold">30 Minutes</p>
-                    <p className="text-sm text-gray-400">Time limit</p>
+                    <p className="font-semibold">2 Minutes</p>
+                    <p className="text-sm text-gray-400">Quick thinking required!</p>
+                  </div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-4 flex items-center gap-3">
+                  <span className="text-2xl">🎮</span>
+                  <div>
+                    <p className="font-semibold">Interactive</p>
+                    <p className="text-sm text-gray-400">Click to select answers</p>
                   </div>
                 </div>
                 <div className="bg-black/30 rounded-lg p-4 flex items-center gap-3">
                   <span className="text-2xl">💯</span>
                   <div>
                     <p className="font-semibold">Perfect Score</p>
-                    <p className="text-sm text-gray-400">All correct required</p>
-                  </div>
-                </div>
-                <div className="bg-black/30 rounded-lg p-4 flex items-center gap-3">
-                  <span className="text-2xl">🎁</span>
-                  <div>
-                    <p className="font-semibold">100 LEARN</p>
-                    <p className="text-sm text-gray-400">Token reward</p>
+                    <p className="text-sm text-gray-400">10/10 for rewards</p>
                   </div>
                 </div>
               </div>
@@ -249,20 +346,20 @@ export function BatchQuiz() {
             <motion.button
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleStartQuiz}
               className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-2xl font-bold text-xl text-white shadow-2xl transition-all duration-300 relative overflow-hidden group"
             >
-              <span className="relative z-10">Start Quiz Challenge</span>
+              <span className="relative z-10">Start 2-Minute Challenge</span>
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600"
                 initial={{ x: "-100%" }}
                 whileHover={{ x: 0 }}
                 transition={{ duration: 0.3 }}
               />
-              <span className="ml-2 text-2xl">🚀</span>
+              <span className="ml-2 text-2xl">⚡</span>
             </motion.button>
           </div>
         </div>
@@ -287,9 +384,9 @@ export function BatchQuiz() {
               <div className="w-24 h-24 border-4 border-purple-500 border-t-transparent rounded-full"></div>
             </motion.div>
             <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Initializing Quiz Session
+              Preparing Your Challenge
             </h2>
-            <p className="text-gray-300 mb-2">Please confirm the transaction in your wallet</p>
+            <p className="text-gray-300 mb-2">Confirm transaction to begin</p>
             {startHash && (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -309,6 +406,9 @@ export function BatchQuiz() {
   if (quizPhase === 'quiz') {
     const question = QUIZ_QUESTIONS[currentQuestion];
     const progress = ((currentQuestion + 1) / 10) * 100;
+    const timeProgress = (timeRemaining / QUIZ_DURATION) * 100;
+    const isLastQuestion = currentQuestion === 9;
+    const isTimeRunningOut = timeRemaining <= 30;
     
     return (
       <motion.div 
@@ -317,24 +417,37 @@ export function BatchQuiz() {
         className="max-w-4xl mx-auto"
       >
         <div className="bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-pink-600/10 backdrop-blur-xl rounded-3xl p-8 border border-white/10">
-          {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-lg font-semibold text-purple-400">
-                Question {currentQuestion + 1} of 10
-              </span>
+          {/* Timer Bar */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <motion.span 
+                className={`text-lg font-bold ${isTimeRunningOut ? 'text-red-400' : 'text-purple-400'}`}
+                animate={isTimeRunningOut ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                ⏱️ {formatTime(timeRemaining)}
+              </motion.span>
               <span className="text-sm text-gray-400">
-                {answers.filter(a => a).length}/10 answered
+                Question {currentQuestion + 1}/10
               </span>
+            </div>
+            <div className="relative h-2 bg-black/30 rounded-full overflow-hidden mb-2">
+              <motion.div 
+                className={`absolute inset-y-0 left-0 ${
+                  isTimeRunningOut 
+                    ? 'bg-gradient-to-r from-red-500 to-orange-500' 
+                    : 'bg-gradient-to-r from-green-500 to-emerald-500'
+                } rounded-full`}
+                animate={{ width: `${timeProgress}%` }}
+                transition={{ duration: 0.5 }}
+              />
             </div>
             <div className="relative h-3 bg-black/30 rounded-full overflow-hidden">
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.5 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
             </div>
           </div>
 
@@ -349,132 +462,141 @@ export function BatchQuiz() {
               className="mb-8"
             >
               <div className="bg-black/30 rounded-2xl p-8 border border-white/10">
-                <div className="flex items-start gap-4 mb-6">
-                  <span className="text-5xl">{question.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-2">{question.question}</h3>
-                    <button
-                      onClick={() => setShowHint(!showHint)}
-                      className="text-sm text-purple-400 hover:text-purple-300 transition"
-                    >
-                      {showHint ? '💡 Hint shown below' : '💡 Need a hint?'}
-                    </button>
-                  </div>
+                <div className="flex items-start gap-4 mb-8">
+                  <motion.span 
+                    className="text-5xl"
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {question.emoji}
+                  </motion.span>
+                  <h3 className="text-2xl font-bold flex-1">{question.question}</h3>
                 </div>
                 
-                <input
-                  type="text"
-                  value={answers[currentQuestion]}
-                  onChange={(e) => handleAnswerChange(e.target.value)}
-                  placeholder="Type your answer here..."
-                  className="w-full px-6 py-4 bg-white/5 border border-white/20 rounded-xl text-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:bg-white/10 transition-all"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && currentQuestion < 9) {
-                      setCurrentQuestion(currentQuestion + 1);
-                    }
-                  }}
-                />
-                
-                <AnimatePresence>
-                  {showHint && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-3 text-sm text-yellow-400 bg-yellow-500/10 px-4 py-2 rounded-lg"
-                    >
-                      💡 Hint: {question.hint}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
+                {/* Multiple Choice Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {question.options.map((option, index) => {
+                    const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
+                    const isSelected = answers[currentQuestion] === option;
+                    
+                    return (
+                      <motion.button
+                        key={option}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleOptionSelect(option)}
+                        className={`
+                          relative p-4 rounded-xl font-semibold text-left transition-all duration-300
+                          flex items-center gap-4 group
+                          ${isSelected 
+                            ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-2 border-green-400' 
+                            : 'bg-white/5 border-2 border-white/20 hover:border-purple-400 hover:bg-white/10'
+                          }
+                        `}
+                      >
+                        <span className={`
+                          w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg
+                          ${isSelected 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-white/10 text-gray-400 group-hover:bg-purple-500 group-hover:text-white'
+                          }
+                        `}>
+                          {optionLetter}
+                        </span>
+                        <span className="flex-1">{option}</span>
+                        {isSelected && (
+                          <motion.span
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="text-green-400 text-xl"
+                          >
+                            ✓
+                          </motion.span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          {/* Question Navigation Grid */}
-          <div className="grid grid-cols-5 md:grid-cols-10 gap-2 mb-8">
+          {/* Question Quick Navigation */}
+          <div className="flex justify-center gap-2 mb-6">
             {answers.map((answer, i) => (
               <motion.button
                 key={i}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.2 }}
                 onClick={() => setCurrentQuestion(i)}
                 className={`
-                  relative py-3 rounded-xl text-sm font-bold transition-all duration-300
+                  w-8 h-8 rounded-lg text-xs font-bold transition-all
                   ${i === currentQuestion 
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' 
                     : answer 
-                      ? 'bg-green-500/30 text-green-400 border border-green-500/50' 
-                      : 'bg-white/5 text-gray-500 border border-white/10 hover:border-white/30'
+                      ? 'bg-green-500/30 text-green-400' 
+                      : 'bg-white/5 text-gray-500'
                   }
                 `}
               >
                 {i + 1}
-                {answer && i !== currentQuestion && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full"
-                  />
-                )}
               </motion.button>
             ))}
           </div>
 
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4"
-            >
-              <p className="text-red-300">{error}</p>
-            </motion.div>
-          )}
-
-          {/* Navigation Buttons */}
+          {/* Navigation/Submit */}
           <div className="flex justify-between gap-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setCurrentQuestion(Math.max(0, currentQuestion - 1));
-                setShowHint(false);
+                if (currentQuestion > 0) {
+                  setCurrentQuestion(currentQuestion - 1);
+                  setSelectedOption(answers[currentQuestion - 1]);
+                }
               }}
               disabled={currentQuestion === 0}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:hover:bg-white/10 rounded-xl font-bold text-white transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-xl font-bold text-white transition-all"
             >
-              <span>←</span> Previous
+              ← Previous
             </motion.button>
 
-            {currentQuestion === 9 ? (
+            {isLastQuestion && answers.filter(a => a).length === 10 ? (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSubmitAll}
-                className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-xl font-bold text-xl text-white shadow-2xl transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-xl font-bold text-xl text-white shadow-2xl"
               >
-                Submit All Answers
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  ✓
-                </motion.span>
+                Submit Quiz ✓
               </motion.button>
             ) : (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  setCurrentQuestion(Math.min(9, currentQuestion + 1));
-                  setShowHint(false);
+                  if (currentQuestion < 9) {
+                    setCurrentQuestion(currentQuestion + 1);
+                    setSelectedOption(answers[currentQuestion + 1]);
+                  }
                 }}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl font-bold text-white transition-all flex items-center gap-2"
+                disabled={currentQuestion === 9}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 rounded-xl font-bold text-white transition-all"
               >
-                Next <span>→</span>
+                Next →
               </motion.button>
             )}
           </div>
+
+          {/* Auto-submit warning */}
+          {isTimeRunningOut && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 text-center text-red-400 font-semibold"
+            >
+              ⚠️ Less than 30 seconds remaining! Quiz will auto-submit when time runs out.
+            </motion.div>
+          )}
         </div>
       </motion.div>
     );
@@ -489,9 +611,7 @@ export function BatchQuiz() {
       >
         <div className="bg-gradient-to-br from-indigo-600/10 via-purple-600/10 to-pink-600/10 backdrop-blur-xl rounded-3xl p-12 border border-white/10">
           <div className="text-center">
-            <motion.div
-              className="inline-block mb-8"
-            >
+            <motion.div className="inline-block mb-8">
               <motion.div
                 animate={{ 
                   rotate: 360,
@@ -518,17 +638,6 @@ export function BatchQuiz() {
               >
                 <p className="text-sm text-gray-400">Transaction Hash:</p>
                 <p className="text-xs font-mono text-green-400">{submitHash.slice(0,20)}...{submitHash.slice(-18)}</p>
-                
-                <motion.div className="mt-4 flex justify-center gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-3 h-3 bg-green-400 rounded-full"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
-                    />
-                  ))}
-                </motion.div>
               </motion.div>
             )}
           </div>
@@ -540,6 +649,7 @@ export function BatchQuiz() {
   if (quizPhase === 'done') {
     const correctCount = checkAnswers();
     const isPerfect = correctCount === 10;
+    const timeTaken = quizStartTime ? Math.floor((Date.now() - quizStartTime) / 1000) : QUIZ_DURATION;
     
     return (
       <motion.div 
@@ -561,7 +671,6 @@ export function BatchQuiz() {
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
               className="text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent"
             >
               {isPerfect ? 'Perfect Score!' : 'Quiz Complete!'}
@@ -570,32 +679,44 @@ export function BatchQuiz() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mb-8"
+              transition={{ delay: 0.2 }}
+              className="mb-6"
             >
               <p className="text-3xl mb-2">
-                You got <span className="font-bold text-purple-400">{correctCount}</span> out of <span className="font-bold">10</span> correct
+                Score: <span className="font-bold text-purple-400">{correctCount}</span>/10
               </p>
-              
-              {/* Score visualization */}
-              <div className="flex justify-center gap-2 mt-4">
-                {Array.from({ length: 10 }, (_, i) => (
+              <p className="text-lg text-gray-400">
+                Time: {formatTime(timeTaken)} / {formatTime(QUIZ_DURATION)}
+              </p>
+            </motion.div>
+            
+            {/* Answer Review */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="grid grid-cols-10 gap-2 mb-6"
+            >
+              {QUIZ_QUESTIONS.map((q, i) => {
+                const isCorrect = answers[i] === q.answer;
+                return (
                   <motion.div
                     key={i}
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                      ${i < correctCount 
-                        ? 'bg-gradient-to-r from-green-400 to-emerald-400 text-white' 
-                        : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                    transition={{ delay: 0.4 + i * 0.05 }}
+                    className={`
+                      w-full h-10 rounded-lg flex items-center justify-center font-bold
+                      ${isCorrect 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                        : 'bg-red-500/30 text-red-400 border border-red-500/50'
                       }
                     `}
                   >
-                    {i < correctCount ? '✓' : '✗'}
+                    {isCorrect ? '✓' : '✗'}
                   </motion.div>
-                ))}
-              </div>
+                );
+              })}
             </motion.div>
             
             <motion.div
@@ -616,8 +737,10 @@ export function BatchQuiz() {
                 </div>
               ) : (
                 <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-400 rounded-2xl p-6 mb-6">
-                  <p className="text-xl text-yellow-400 mb-2">Almost there! You need all 10 correct to earn tokens.</p>
-                  <p className="text-lg text-yellow-300">Try again tomorrow for another chance!</p>
+                  <p className="text-xl text-yellow-400 mb-2">
+                    You got {correctCount} correct! Need all 10 for rewards.
+                  </p>
+                  <p className="text-lg text-yellow-300">Try again tomorrow!</p>
                 </div>
               )}
             </motion.div>
@@ -625,7 +748,7 @@ export function BatchQuiz() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.6 }}
               className="flex items-center justify-center gap-2 text-gray-300"
             >
               <motion.div
@@ -633,7 +756,7 @@ export function BatchQuiz() {
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full"
               />
-              <p className="text-lg">Redirecting to leaderboard in {countdown} seconds...</p>
+              <p className="text-lg">Redirecting to leaderboard in {countdown}...</p>
             </motion.div>
           </div>
         </div>
