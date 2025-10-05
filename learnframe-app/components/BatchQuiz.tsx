@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useRouter } from 'next/navigation';
 
 const QUIZ_QUESTIONS = [
@@ -34,76 +34,68 @@ const BATCH_QUIZ_ABI = [
   }
 ];
 
+const QUIZ_ADDRESS = '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
+
 export function BatchQuiz() {
   const router = useRouter();
-  const publicClient = usePublicClient();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>(new Array(10).fill(''));
-  const [quizPhase, setQuizPhase] = useState<'start' | 'session' | 'quiz' | 'submit' | 'done'>('start');
+  const [quizState, setQuizState] = useState<'welcome' | 'starting' | 'quiz' | 'submitting' | 'complete'>('welcome');
   const [error, setError] = useState('');
-  const [txWaitCount, setTxWaitCount] = useState(0);
+  const [countdown, setCountdown] = useState(0);
   
-  const { writeContract: startSession, data: startHash } = useWriteContract();
-  const { isSuccess: startSuccess } = useWaitForTransactionReceipt({ 
+  const { writeContract: startSession, data: startHash, isPending: isStarting } = useWriteContract();
+  const { isLoading: isStartConfirming, isSuccess: isStarted } = useWaitForTransactionReceipt({ 
     hash: startHash,
-    confirmations: 1,
   });
   
-  const { writeContract: submitAnswers, data: submitHash } = useWriteContract();
-  
-  // Manual TX checking for submit
-  useEffect(() => {
-    if (!submitHash || quizPhase !== 'submit') return;
-    
-    const checkTx = async () => {
-      try {
-        const receipt = await publicClient?.waitForTransactionReceipt({
-          hash: submitHash,
-          confirmations: 1,
-          timeout: 60_000 // 60 seconds timeout
-        });
-        
-        if (receipt?.status === 'success') {
-          console.log('✅ TX Confirmed!', receipt);
-          setQuizPhase('done');
-          setTimeout(() => router.push('/leaderboard'), 3000);
-        }
-      } catch (err) {
-        console.error('TX Error:', err);
-        // Even if timeout, assume success after 30s
-        if (txWaitCount > 6) {
-          setQuizPhase('done');
-          setTimeout(() => router.push('/leaderboard'), 3000);
-        } else {
-          setTxWaitCount(prev => prev + 1);
-        }
-      }
-    };
-    
-    const interval = setInterval(checkTx, 5000);
-    return () => clearInterval(interval);
-  }, [submitHash, quizPhase, publicClient, router, txWaitCount]);
+  const { writeContract: submitAnswers, data: submitHash, isPending: isSubmitting } = useWriteContract();
+  const { isLoading: isSubmitConfirming, isSuccess: isSubmitted } = useWaitForTransactionReceipt({ 
+    hash: submitHash,
+  });
 
+  // Handle session start
   useEffect(() => {
-    if (startSuccess && quizPhase === 'session') {
-      setQuizPhase('quiz');
+    if (isStarted && quizState === 'starting') {
+      console.log('Session started successfully');
+      setQuizState('quiz');
+      setError('');
     }
-  }, [startSuccess, quizPhase]);
+  }, [isStarted, quizState]);
+
+  // Handle submit success  
+  useEffect(() => {
+    if (isSubmitted && quizState === 'submitting') {
+      console.log('Quiz submitted successfully');
+      setQuizState('complete');
+      setCountdown(5);
+    }
+  }, [isSubmitted, quizState]);
+
+  // Countdown and redirect
+  useEffect(() => {
+    if (quizState === 'complete' && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (quizState === 'complete' && countdown === 0) {
+      router.push('/leaderboard');
+    }
+  }, [quizState, countdown, router]);
 
   const handleStartQuiz = async () => {
+    setError('');
+    setQuizState('starting');
+    
     try {
-      setError('');
-      setQuizPhase('session');
-      
       await startSession({
-        address: '0x749cdd9355254782828eDae7D85212A2e408D14c' as `0x${string}`,
+        address: QUIZ_ADDRESS as `0x${string}`,
         abi: BATCH_QUIZ_ABI,
         functionName: 'startQuizSession',
       });
     } catch (err) {
       console.error('Start error:', err);
-      setError('Failed to start quiz. Please try again.');
-      setQuizPhase('start');
+      setError('Failed to start session. Try again.');
+      setQuizState('welcome');
     }
   };
 
@@ -113,23 +105,20 @@ export function BatchQuiz() {
       return;
     }
 
+    setError('');
+    setQuizState('submitting');
+    
     try {
-      setError('');
-      setQuizPhase('submit');
-      setTxWaitCount(0);
-      
-      console.log('Submitting answers:', answers);
-      
       await submitAnswers({
-        address: '0x749cdd9355254782828eDae7D85212A2e408D14c' as `0x${string}`,
+        address: QUIZ_ADDRESS as `0x${string}`,
         abi: BATCH_QUIZ_ABI,
         functionName: 'submitBatchAnswers',
         args: [answers],
       });
     } catch (err) {
       console.error('Submit error:', err);
-      setError('Failed to submit. Please try again.');
-      setQuizPhase('quiz');
+      setError('Failed to submit. Try again.');
+      setQuizState('quiz');
     }
   };
 
@@ -143,8 +132,8 @@ export function BatchQuiz() {
     return correct;
   };
 
-  // START SCREEN
-  if (quizPhase === 'start') {
+  // WELCOME SCREEN
+  if (quizState === 'welcome') {
     return (
       <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl max-w-4xl mx-auto border border-white/20">
         <h2 className="text-4xl font-bold mb-6 text-center">Base Blockchain Quiz</h2>
@@ -152,6 +141,7 @@ export function BatchQuiz() {
           <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300">
             🏆 Win 100 LEARN Tokens!
           </h3>
+          <p className="text-center text-xl">Answer all 10 questions correctly to win</p>
         </div>
         {error && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-4">
@@ -160,29 +150,28 @@ export function BatchQuiz() {
         )}
         <button
           onClick={handleStartQuiz}
-          className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl font-bold text-xl"
+          disabled={isStarting}
+          className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl font-bold text-xl disabled:opacity-50"
         >
-          Start Quiz →
+          {isStarting ? 'Starting...' : 'Start Quiz →'}
         </button>
       </div>
     );
   }
 
-  // LOADING SCREEN
-  if (quizPhase === 'session' || quizPhase === 'submit') {
+  // STARTING SCREEN
+  if (quizState === 'starting') {
     return (
       <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl max-w-4xl mx-auto">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-400 border-t-transparent mx-auto mb-6"></div>
-          <h2 className="text-3xl font-bold mb-2">
-            {quizPhase === 'session' ? 'Starting Session...' : 'Submitting Answers...'}
-          </h2>
-          <p className="text-gray-300">This may take 30-60 seconds</p>
-          {submitHash && (
-            <>
-              <p className="text-sm mt-4">TX: {submitHash.slice(0,10)}...{submitHash.slice(-8)}</p>
-              <p className="text-xs mt-2">Attempt {txWaitCount + 1}/7</p>
-            </>
+          <h2 className="text-3xl font-bold mb-2">Starting Quiz Session...</h2>
+          <p className="text-gray-300">Confirm transaction in MetaMask</p>
+          {startHash && (
+            <div className="mt-4 text-sm">
+              <p>Transaction: {startHash.slice(0,10)}...{startHash.slice(-8)}</p>
+              <p className="text-yellow-400 mt-2">Waiting for confirmation...</p>
+            </div>
           )}
         </div>
       </div>
@@ -190,7 +179,7 @@ export function BatchQuiz() {
   }
 
   // QUIZ SCREEN
-  if (quizPhase === 'quiz') {
+  if (quizState === 'quiz') {
     const question = QUIZ_QUESTIONS[currentQuestion];
     
     return (
@@ -239,6 +228,12 @@ export function BatchQuiz() {
           ))}
         </div>
 
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4">
+            <p>{error}</p>
+          </div>
+        )}
+
         <div className="flex justify-between gap-4">
           <button
             onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
@@ -251,9 +246,10 @@ export function BatchQuiz() {
           {currentQuestion === 9 ? (
             <button
               onClick={handleSubmitAll}
-              className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg font-bold text-xl"
+              disabled={isSubmitting}
+              className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg font-bold text-xl disabled:opacity-50"
             >
-              Submit All Answers ✓
+              {isSubmitting ? 'Submitting...' : 'Submit All Answers ✓'}
             </button>
           ) : (
             <button
@@ -268,8 +264,27 @@ export function BatchQuiz() {
     );
   }
 
-  // RESULT SCREEN
-  if (quizPhase === 'done') {
+  // SUBMITTING SCREEN
+  if (quizState === 'submitting') {
+    return (
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl max-w-4xl mx-auto">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-400 border-t-transparent mx-auto mb-6"></div>
+          <h2 className="text-3xl font-bold mb-2">Submitting Your Answers...</h2>
+          <p className="text-gray-300">Verifying your score on blockchain</p>
+          {submitHash && (
+            <div className="mt-4 text-sm">
+              <p>Transaction: {submitHash.slice(0,10)}...{submitHash.slice(-8)}</p>
+              <p className="text-yellow-400 mt-2">Waiting for confirmation...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // COMPLETE SCREEN
+  if (quizState === 'complete') {
     const correctCount = checkAnswers();
     const isPerfect = correctCount === 10;
     
@@ -287,11 +302,11 @@ export function BatchQuiz() {
             </div>
           ) : (
             <div className="bg-yellow-500/30 border-2 border-yellow-400 rounded-xl p-6">
-              <p className="text-xl">Try again next week!</p>
+              <p className="text-xl">Try again tomorrow!</p>
             </div>
           )}
           
-          <p className="text-gray-300 mt-6">Redirecting to leaderboard...</p>
+          <p className="text-gray-300 mt-6">Redirecting to leaderboard in {countdown} seconds...</p>
         </div>
       </div>
     );
