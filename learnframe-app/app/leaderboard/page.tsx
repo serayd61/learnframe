@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useReadContract } from 'wagmi';
+import { useReadContract, useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 
@@ -24,35 +24,81 @@ const LEADERBOARD_ABI = [
   }
 ];
 
-export default function LeaderboardPage() {
-  const [topUsers, setTopUsers] = useState<User[]>([]);
+const TOKEN_ABI = [
+  {
+    "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
 
-  const { data: leaderboardData, refetch } = useReadContract({
+export default function LeaderboardPage() {
+  const { address } = useAccount();
+  const [topUsers, setTopUsers] = useState<User[]>([]);
+  const [myRank, setMyRank] = useState<number | null>(null);
+  const [myScore, setMyScore] = useState<number>(0);
+
+  // Get leaderboard data
+  const { data: leaderboardData, refetch: refetchLeaderboard } = useReadContract({
     address: '0x62Ad46dA54b11358A73b3A009a56BDe154C38AF8' as `0x${string}`,
     abi: LEADERBOARD_ABI,
     functionName: 'getTopUsers',
     args: [BigInt(100)],
   });
 
+  // Get my token balance
+  const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
+    address: '0xcc2768B27B389aE8999fBF93478E8BBa8485c461' as `0x${string}`,
+    abi: TOKEN_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  });
+
   useEffect(() => {
     if (leaderboardData) {
       const [addresses, scores] = leaderboardData as [string[], bigint[]];
-      const users = addresses.map((addr, i) => ({
-        address: addr,
-        score: Number(scores[i]),
-        rank: i + 1
-      })).filter(u => u.address !== '0x0000000000000000000000000000000000000000');
+      const users: User[] = [];
+      
+      for (let i = 0; i < addresses.length; i++) {
+        if (addresses[i] !== '0x0000000000000000000000000000000000000000') {
+          const score = Number(scores[i]);
+          users.push({
+            address: addresses[i],
+            score: score,
+            rank: users.length + 1
+          });
+          
+          // Check if this is the current user
+          if (address && addresses[i].toLowerCase() === address.toLowerCase()) {
+            setMyRank(users.length);
+            setMyScore(score);
+          }
+        }
+      }
+      
       setTopUsers(users);
     }
-  }, [leaderboardData]);
+  }, [leaderboardData, address]);
 
-  // Auto refresh every 30 seconds
+  useEffect(() => {
+    if (tokenBalance) {
+      const balance = Number(tokenBalance) / 10**18;
+      console.log('My token balance:', balance);
+    }
+  }, [tokenBalance]);
+
+  // Auto refresh
   useEffect(() => {
     const interval = setInterval(() => {
-      refetch();
-    }, 30000);
+      refetchLeaderboard();
+      refetchBalance();
+    }, 10000); // Every 10 seconds
     return () => clearInterval(interval);
-  }, [refetch]);
+  }, [refetchLeaderboard, refetchBalance]);
+
+  const myTokenBalance = tokenBalance ? (Number(tokenBalance) / 10**18).toFixed(2) : '0.00';
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -84,11 +130,37 @@ export default function LeaderboardPage() {
               <p className="text-xl text-gray-300">Top performers on LearnFrame</p>
             </div>
 
-            {/* Stats Cards */}
+            {/* My Stats */}
+            {address && (
+              <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur rounded-2xl p-6 mb-8 border border-purple-500/30">
+                <h3 className="text-2xl font-bold mb-4">📊 Your Stats</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-white/10 rounded-lg p-4">
+                    <p className="text-gray-400 mb-1">Your Balance</p>
+                    <p className="text-3xl font-bold text-green-400">{myTokenBalance} LEARN</p>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-4">
+                    <p className="text-gray-400 mb-1">Your Rank</p>
+                    <p className="text-3xl font-bold text-yellow-400">
+                      {myRank ? `#${myRank}` : 'Not ranked'}
+                    </p>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-4">
+                    <p className="text-gray-400 mb-1">Your Score</p>
+                    <p className="text-3xl font-bold text-purple-400">{myScore}</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-sm text-gray-400">
+                  Wallet: {address.slice(0, 6)}...{address.slice(-4)}
+                </div>
+              </div>
+            )}
+
+            {/* Global Stats */}
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               <div className="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg text-gray-400 mb-2">Total Participants</h3>
-                <p className="text-3xl font-bold">{topUsers.length > 0 ? topUsers.length : '0'}</p>
+                <p className="text-3xl font-bold">{topUsers.length}</p>
               </div>
               <div className="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg text-gray-400 mb-2">Total LEARN Distributed</h3>
@@ -122,35 +194,49 @@ export default function LeaderboardPage() {
                   </thead>
                   <tbody>
                     {topUsers.length > 0 ? (
-                      topUsers.map((user, index) => (
-                        <tr key={index} className="border-t border-white/10 hover:bg-white/5 transition">
-                          <td className="px-6 py-4">
-                            <span className="text-2xl font-bold">
-                              {user.rank === 1 ? '🥇' :
-                               user.rank === 2 ? '🥈' :
-                               user.rank === 3 ? '🥉' :
-                               `#${user.rank}`}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="font-mono text-sm">
-                              {user.address.slice(0, 8)}...{user.address.slice(-6)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right font-bold">
-                            {user.score.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <span className="text-green-400 font-bold">
-                              {user.score.toLocaleString()} LEARN
-                            </span>
-                          </td>
-                        </tr>
-                      ))
+                      topUsers.map((user, index) => {
+                        const isMyAddress = address && user.address.toLowerCase() === address.toLowerCase();
+                        return (
+                          <tr 
+                            key={index} 
+                            className={`border-t border-white/10 transition ${
+                              isMyAddress ? 'bg-purple-600/20' : 'hover:bg-white/5'
+                            }`}
+                          >
+                            <td className="px-6 py-4">
+                              <span className="text-2xl font-bold">
+                                {user.rank === 1 ? '🥇' :
+                                 user.rank === 2 ? '🥈' :
+                                 user.rank === 3 ? '🥉' :
+                                 `#${user.rank}`}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="font-mono text-sm">
+                                  {user.address.slice(0, 8)}...{user.address.slice(-6)}
+                                </div>
+                                {isMyAddress && (
+                                  <span className="bg-purple-500/50 px-2 py-1 rounded text-xs">You</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold">
+                              {user.score.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-green-400 font-bold">
+                                {user.score.toLocaleString()} LEARN
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                          No participants yet. Be the first to complete a quiz!
+                          <p className="text-xl mb-2">No data yet!</p>
+                          <p>Complete the quiz to be the first on the leaderboard!</p>
                         </td>
                       </tr>
                     )}
@@ -158,6 +244,17 @@ export default function LeaderboardPage() {
                 </table>
               </div>
             </div>
+
+            {/* Debug Info */}
+            {address && (
+              <div className="mt-8 p-4 bg-black/30 rounded-lg text-xs text-gray-400">
+                <p>Debug Info:</p>
+                <p>Your Address: {address}</p>
+                <p>Token Balance: {myTokenBalance} LEARN</p>
+                <p>Leaderboard Score: {myScore}</p>
+                <p>Total Users in Leaderboard: {topUsers.length}</p>
+              </div>
+            )}
 
             {/* Back to Quiz Button */}
             <div className="text-center mt-8">
