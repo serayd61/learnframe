@@ -42,7 +42,7 @@ export default function LeaderboardPage() {
 
   // Get leaderboard data
   const { data: leaderboardData, refetch: refetchLeaderboard } = useReadContract({
-    address: '0x62Ad46dA54b11358A73b3A009a56BDe154C38AF8' as `0x${string}`,
+    address: '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61' as `0x${string}`,
     abi: LEADERBOARD_ABI,
     functionName: 'getTopUsers',
     args: [BigInt(100)],
@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
 
   // Get my token balance
   const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
-    address: '0xcc2768B27B389aE8999fBF93478E8BBa8485c461' as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,

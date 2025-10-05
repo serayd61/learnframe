@@ -61,7 +61,7 @@ export default function RewardsPage() {
                   </div>
                   <div className="bg-black/30 rounded-lg p-4">
                     <h3 className="text-xl font-bold mb-2">Contract</h3>
-                    <p className="text-xs font-mono break-all">0xcc2768B27B389aE8999fBF93478E8BBa8485c461</p>
+                    <p className="text-xs font-mono break-all">0x1Cd95030e189e54755C1ccA28e24891250A79d50</p>
                   </div>
                 </div>
               </div>

@@ -1,9 +1,11 @@
 {
-  "network": "baseSepolia",
-  "chainId": 84532,
+  "network": "Base Mainnet",
+  "chainId": 8453,
   "contracts": {
-    "learnToken": "0xfD2afbF93acF269F0bA29Da5afb7eeb2B54e1320",
-    "quizManager": "0x61c798f9fE3bF4B0f54433820786110b8c331Ec8"
+    "LearnToken": "0x1Cd95030e189e54755C1ccA28e24891250A79d50",
+    "QuizManager": "0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61"
   },
-  "deployedAt": "2024-01-04"
+  "deployedAt": "2025-10-05",
+  "verified": true,
+  "verificationService": "Sourcify"
 }

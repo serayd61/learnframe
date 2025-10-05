@@ -21,6 +21,14 @@ export default {
       url: process.env.ALCHEMY_BASE_SEPOLIA_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 84532,
+    },
+    baseMainnet: {
+      url: "https://mainnet.base.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 8453,
     }
+  },
+  sourcify: {
+    enabled: true
   }
 };

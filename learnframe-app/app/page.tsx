@@ -56,7 +56,7 @@ export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const { data: tokenBalance } = useReadContract({
-    address: '0xcc2768B27B389aE8999fBF93478E8BBa8485c461' as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,

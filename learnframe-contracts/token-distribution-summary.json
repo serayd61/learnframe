@@ -1,0 +1,40 @@
+{
+  "network": "Base Mainnet",
+  "totalSupply": "100000000 LEARN",
+  "distribution": {
+    "quizRewards": {
+      "amount": "20000000 LEARN",
+      "percentage": "20%",
+      "address": "0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61",
+      "tx": "0xe0422eb689dc502e2b7d706fea225a8c2d7e5d508ee4fc437556b42a4263d1d9"
+    },
+    "team": {
+      "amount": "15000000 LEARN",
+      "percentage": "15%",
+      "lockPeriod": "6 months",
+      "address": "0x35abe5D33ca54352415B057D6F51ab2EFd8Ad709",
+      "tx": "0x2c90e7db6b8c762a2dee2c857abbf75df7566c79059b3f8c6596812a5448423f"
+    },
+    "devSponsor": {
+      "amount": "10000000 LEARN",
+      "percentage": "10%",
+      "address": "0x43970F132829f7D72a99B2aFeB033F097D2c877b",
+      "tx": "0x16d474e09da04ebad8a371cef37881e205faa5d27da5318ebbeb8f8ae5af4fa7"
+    },
+    "dexLiquidity": {
+      "amount": "40000000 LEARN",
+      "percentage": "40%",
+      "address": "0x27650088aD441cE2a10256381246F952F80d51b3",
+      "status": "Already in deployer wallet (DEX wallet)"
+    },
+    "vesting": {
+      "amount": "15000000 LEARN",
+      "percentage": "15%",
+      "vestingPeriod": "24 months",
+      "monthlyUnlock": "625000 LEARN",
+      "address": "0x103c70C2bc757BDA481B685Fc75E95d4aE5319E6",
+      "tx": "0x852fe4ec88fb0385825ea6999bacfa1e482819c5524f84328f07b8ecc9fe89f7"
+    }
+  },
+  "completedAt": "2025-10-05"
+}
