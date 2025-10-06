@@ -20,7 +20,7 @@ const QUIZ_QUESTIONS = [
   { id: 10, question: "What is the name of Base's major upgrade?", options: ["Granite", "Diamond", "Bedrock", "Crystal"], answer: "Bedrock", emoji: "🪨" }
 ];
 
-const CONTRACT = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
+const CONTRACT = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
 const ABI = parseAbi([
   'function startQuizSession()',
   'function submitBatchAnswers(string[10] memory userAnswers)',
@@ -55,7 +55,7 @@ export function BatchQuiz() {
           
           // Chain kontrolü
           const chainId = await ethProvider.request({ method: 'eth_chainId' });
-          console.log('Current chain ID:', chainId, 'Expected: 0x14A34 (Base Sepolia)');
+          console.log('Current chain ID:', chainId, 'Expected: 0x2105 (Base Mainnet)');
           
           const accounts = await ethProvider.request({ method: 'eth_requestAccounts' }) as string[];
           if (accounts?.[0]) {
