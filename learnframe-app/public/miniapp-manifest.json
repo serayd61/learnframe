@@ -1,0 +1,28 @@
+{
+  "name": "LearnFrame",
+  "short_name": "LearnFrame",
+  "description": "Learn blockchain knowledge, earn LEARN tokens",
+  "version": "1.0.0",
+  "author": "LearnFrame Team",
+  "website": "https://learnframe.vercel.app",
+  "icon": "/icon.png",
+  "categories": ["education", "defi", "gaming"],
+  "permissions": [
+    "wallet.connect",
+    "wallet.send", 
+    "user.profile",
+    "notifications.push",
+    "share.content"
+  ],
+  "supportedChains": ["base"],
+  "minSdkVersion": "0.1.0",
+  "entryPoints": {
+    "main": "/",
+    "quiz": "/quiz",
+    "leaderboard": "/leaderboard"
+  },
+  "theme": {
+    "primaryColor": "#7C3AED",
+    "backgroundColor": "#000000"
+  }
+}
