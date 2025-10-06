@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useBaseMiniApp } from './BaseMiniAppProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,7 +29,7 @@ const MINI_APP_QUIZ_DATA = [
 ];
 
 export function MiniAppQuiz() {
-  const { isMiniApp, user, share, context } = useBaseMiniApp();
+  const { isMiniApp, user, share } = useBaseMiniApp();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
@@ -94,7 +94,7 @@ export function MiniAppQuiz() {
               Share Achievement 📢
             </button>
             <div className="text-xs text-gray-400">
-              Connected as: {user?.username || user?.displayName}
+              Connected as: {user?.username || user?.displayName || 'Anonymous'}
             </div>
           </div>
         )}
