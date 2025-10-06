@@ -7,11 +7,11 @@
   "frame": {
     "version": "1",
     "name": "LearnFrame",
-    "iconUrl": "https://learnframe.vercel.app/icon.png",
+    "iconUrl": "https://learnframe.vercel.app/api/preview",
     "homeUrl": "https://learnframe.vercel.app",
-    "imageUrl": "https://learnframe.vercel.app/image.png",
+    "imageUrl": "https://learnframe.vercel.app/api/preview",
     "buttonTitle": "Start Learning",
-    "splashImageUrl": "https://learnframe.vercel.app/splash.png",
+    "splashImageUrl": "https://learnframe.vercel.app/api/preview",
     "splashBackgroundColor": "#1e293b"
   }
 }
