@@ -14,6 +14,13 @@ const TOKEN_ABI = [
     "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
   }
 ];
 
@@ -98,6 +105,13 @@ export default function Home() {
     }
   });
 
+  // Contract test için totalSupply oku
+  const { data: totalSupply, error: totalSupplyError } = useReadContract({
+    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
+    abi: TOKEN_ABI,
+    functionName: 'totalSupply',
+  });
+
   // Debug logs
   useEffect(() => {
     console.log('🔍 Balance Debug Info:');
@@ -112,7 +126,9 @@ export default function Home() {
     console.log('- Is Connected:', isUserConnected);
     console.log('- Has Context:', !!context);
     console.log('- Farcaster Loading:', isFarcasterLoading);
-  }, [displayAddress, farcasterAddress, address, tokenBalance, balanceError, balanceLoading, isUserConnected, context, isFarcasterLoading]);
+    console.log('- Total Supply:', totalSupply);
+    console.log('- Total Supply Error:', totalSupplyError);
+  }, [displayAddress, farcasterAddress, address, tokenBalance, balanceError, balanceLoading, isUserConnected, context, isFarcasterLoading, totalSupply, totalSupplyError]);
 
   useEffect(() => {
     setMounted(true);
@@ -220,11 +236,27 @@ export default function Home() {
                   <span className="ml-2 font-bold text-green-400">
                     {balanceLoading ? '⏳ Loading...' : `${balance} LEARN`}
                   </span>
+                  <button 
+                    onClick={() => refetchBalance()} 
+                    className="ml-2 text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded"
+                  >
+                    🔄
+                  </button>
                   {balanceError && (
                     <div className="text-xs text-red-400 mt-1">
                       Error: {balanceError.message}
                     </div>
                   )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    <a 
+                      href={`https://basescan.org/address/${displayAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-400"
+                    >
+                      📊 View on Basescan
+                    </a>
+                  </div>
                 </motion.div>
               )}
               {context ? (
