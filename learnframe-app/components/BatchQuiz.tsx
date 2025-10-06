@@ -100,6 +100,11 @@ export function BatchQuiz() {
         });
         
         console.log('Submit tx hash:', txHash);
+        
+        // Quiz completion event trigger et
+        localStorage.setItem('quizCompleted', Date.now().toString());
+        window.dispatchEvent(new Event('quizCompleted'));
+        
         setTimeout(() => setPhase('done'), 3000);
       } else {
         throw new Error('Wallet not connected');

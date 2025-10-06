@@ -86,11 +86,14 @@ export default function Home() {
   const displayAddress = farcasterAddress || address;
   const isUserConnected = isConnected || !!farcasterAddress;
 
-  const { data: tokenBalance } = useReadContract({
-    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
+  const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
+    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: displayAddress ? [displayAddress] : undefined,
+    query: {
+      enabled: !!displayAddress,
+    }
   });
 
   useEffect(() => {
@@ -99,10 +102,35 @@ export default function Home() {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    
+    // Token balance refresh her 30 saniyede bir
+    const interval = setInterval(() => {
+      if (displayAddress) {
+        refetchBalance();
+      }
+    }, 30000);
+
+    // Quiz completion listener
+    const handleQuizCompleted = () => {
+      console.log('Quiz completed, refreshing balance...');
+      refetchBalance();
+    };
+    
+    window.addEventListener('quizCompleted', handleQuizCompleted);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('quizCompleted', handleQuizCompleted);
+      clearInterval(interval);
+    };
+  }, [displayAddress, refetchBalance]);
 
   const balance = tokenBalance ? (Number(tokenBalance) / 10**18).toFixed(2) : '0.00';
+
+  // Quiz tamamlandığında balance refresh et (şu an için event listener kullanıyoruz)
+  // const handleQuizComplete = () => {
+  //   refetchBalance();
+  // };
 
   if (!mounted) return null;
 
