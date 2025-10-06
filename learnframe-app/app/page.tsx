@@ -119,7 +119,7 @@ export default function Home() {
     console.log('- Farcaster Address:', farcasterAddress);
     console.log('- Wagmi Address:', address);
     console.log('- Token Contract (env):', process.env.NEXT_PUBLIC_LEARN_TOKEN);
-    console.log('- Token Contract (final):', (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50'));
+    console.log('- Token Contract (final):', '0x1Cd95030e189e54755C1ccA28e24891250A79d50');
     console.log('- Token Balance:', tokenBalance);
     console.log('- Balance Error:', balanceError);
     console.log('- Is Loading:', balanceLoading);

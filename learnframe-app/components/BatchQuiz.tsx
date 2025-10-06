@@ -71,34 +71,8 @@ export function BatchQuiz() {
             console.log('🔗 Check your quiz history:', `https://basescan.org/address/${accounts[0]}`);
             console.log('🔗 Check contract:', `https://basescan.org/address/${CONTRACT}`);
             
-            // Contract bilgilerini oku
-            try {
-              const sdk = (await import('@farcaster/frame-sdk')).default;
-              const provider = sdk.wallet.ethProvider;
-              
-              // Token address oku
-              const tokenAddressData = await provider.request({
-                method: 'eth_call',
-                params: [{
-                  to: CONTRACT,
-                  data: '0x2e35b278' // learnToken() function selector
-                }, 'latest']
-              });
-              console.log('Quiz contract token address:', tokenAddressData);
-              
-              // Reward amount oku
-              const rewardAmountData = await provider.request({
-                method: 'eth_call',
-                params: [{
-                  to: CONTRACT,
-                  data: '0x92c86012' // REWARD_AMOUNT() function selector
-                }, 'latest']
-              });
-              console.log('Quiz contract reward amount:', rewardAmountData);
-              
-            } catch (err) {
-              console.error('Contract info read error:', err);
-            }
+            // Contract bilgilerini oku (Farcaster provider eth_call desteklemiyor, bu normal)
+            console.log('ℹ️ Contract reading skipped - Farcaster provider limitations');
           }
         } catch (err) {
           console.error('Farcaster init error:', err);
