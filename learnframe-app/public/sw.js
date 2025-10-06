@@ -39,7 +39,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-         })
+    })
   );
   
   return self.clients.claim();
@@ -65,8 +65,8 @@ self.addEventListener('fetch', (event) => {
         }
         
         const responseToCache = response.clone();
-        caches.open(CACHE_NAME).the
-           cache.put(request, responseToCache);
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
         });
         
         return response;
