@@ -39,9 +39,12 @@ export default function LeaderboardPage() {
   const [userRank, setUserRank] = useState<number>(0);
   const displayAddress = farcasterAddress || address;
 
+  // MAINNET TOKEN CONTRACT (hardcoded to avoid environment cache issues)
+  const TOKEN_CONTRACT = '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`;
+
   // User balance okuma
   const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
-    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
+    address: TOKEN_CONTRACT,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: displayAddress ? [displayAddress] : undefined,
@@ -52,7 +55,7 @@ export default function LeaderboardPage() {
 
   // Total supply okuma
   const { data: totalSupply } = useReadContract({
-    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
+    address: TOKEN_CONTRACT,
     abi: TOKEN_ABI,
     functionName: 'totalSupply',
   });

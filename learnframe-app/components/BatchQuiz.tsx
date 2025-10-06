@@ -65,7 +65,7 @@ export function BatchQuiz() {
             setFarcasterAddress(accounts[0]);
             setProvider(ethProvider);
             console.log('Farcaster wallet connected:', accounts[0]);
-            console.log('Raw contract from env:', process.env.NEXT_PUBLIC_BATCH_QUIZ);
+            console.log('Quiz contract (hardcoded mainnet):', CONTRACT);
             console.log('Final contract address:', CONTRACT);
             console.log('Address is valid:', CONTRACT.length === 42);
             console.log('🔗 Check your quiz history:', `https://basescan.org/address/${accounts[0]}`);

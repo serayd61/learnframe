@@ -95,8 +95,11 @@ export default function Home() {
   const displayAddress = farcasterAddress || address;
   const isUserConnected = isConnected || !!farcasterAddress;
 
+  // MAINNET TOKEN CONTRACT (hardcoded to avoid environment cache issues)
+  const TOKEN_CONTRACT = '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`;
+
   const { data: tokenBalance, refetch: refetchBalance, error: balanceError, isLoading: balanceLoading } = useReadContract({
-    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
+    address: TOKEN_CONTRACT,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: displayAddress ? [displayAddress] : undefined,
@@ -107,7 +110,7 @@ export default function Home() {
 
   // Contract test için totalSupply oku
   const { data: totalSupply, error: totalSupplyError } = useReadContract({
-    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
+    address: TOKEN_CONTRACT,
     abi: TOKEN_ABI,
     functionName: 'totalSupply',
   });
@@ -118,8 +121,7 @@ export default function Home() {
     console.log('- Display Address:', displayAddress);
     console.log('- Farcaster Address:', farcasterAddress);
     console.log('- Wagmi Address:', address);
-    console.log('- Token Contract (env):', process.env.NEXT_PUBLIC_LEARN_TOKEN);
-    console.log('- Token Contract (final):', '0x1Cd95030e189e54755C1ccA28e24891250A79d50');
+    console.log('- Token Contract (hardcoded mainnet):', '0x1Cd95030e189e54755C1ccA28e24891250A79d50');
     console.log('- Token Balance:', tokenBalance);
     console.log('- Balance Error:', balanceError);
     console.log('- Is Loading:', balanceLoading);
