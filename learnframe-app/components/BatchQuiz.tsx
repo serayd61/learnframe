@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useWriteContract, useAccount, useReadContract } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -80,7 +80,13 @@ export function BatchQuiz() {
 
   useEffect(() => {
     if (phase === 'quiz' && time > 0) {
-      const t = setInterval(() => setTime(p => p <= 1 ? (handleSubmit(), 0) : p - 1), 1000);
+      const t = setInterval(() => setTime(p => {
+        if (p <= 1) {
+          handleSubmit();
+          return 0;
+        }
+        return p - 1;
+      }), 1000);
       return () => clearInterval(t);
     }
   }, [phase, time]);
@@ -106,8 +112,9 @@ export function BatchQuiz() {
       setError('');
       setPhase('starting');
       await start({ address: CONTRACT as `0x${string}`, abi: ABI, functionName: 'startQuizSession' });
-    } catch (e: any) {
-      setError(e.message || 'Failed');
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || 'Failed');
       setPhase('welcome');
     }
   };
@@ -121,10 +128,11 @@ export function BatchQuiz() {
         address: CONTRACT as `0x${string}`,
         abi: ABI,
         functionName: 'submitBatchAnswers',
-        args: [final as any]
+        args: [final as [string, string, string, string, string, string, string, string, string, string]]
       });
-    } catch (e: any) {
-      setError(e.message || 'Failed');
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || 'Failed');
       setPhase('quiz');
     }
   };
