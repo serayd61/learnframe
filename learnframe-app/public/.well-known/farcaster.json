@@ -5,13 +5,17 @@
     "signature": "MHgxNDgxMTU1M2YxYzQyODk1NDlkNmY5MDNjNzhmYTFiODZhYjhjNmIyZDBlNjMyNWI2YzIwNzZhZTRkYjJlYjE5NmUyYWMzNTc1MTEyNTUyMjhmMDg0YTJkMWRiMzk1NmMyZTgzYmRkMzdlMmM1YmU4NDMyNGNiMTkyY2YzZDg2YjFi"
   },
   "frame": {
-    "version": "1",
-    "name": "LearnFrame",
-    "iconUrl": "https://learnframe.vercel.app/icon.png",
-    "homeUrl": "https://learnframe.vercel.app",
-    "imageUrl": "https://learnframe.vercel.app/image.png",
-    "buttonTitle": "Start Learning",
-    "splashImageUrl": "https://learnframe.vercel.app/splash.png",
-    "splashBackgroundColor": "#1e293b"
+    "version": "next",
+    "imageUrl": "https://learnframe.vercel.app/api/preview",
+    "button": {
+      "title": "Launch LearnFrame",
+      "action": {
+        "type": "launch_frame",
+        "name": "LearnFrame",
+        "url": "https://learnframe.vercel.app",
+        "splashImageUrl": "https://learnframe.vercel.app/api/preview",
+        "splashBackgroundColor": "#1e293b"
+      }
+    }
   }
 }
