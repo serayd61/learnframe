@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useWriteContract, useAccount, useReadContract } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFarcaster } from './FarcasterProvider';
 
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
@@ -29,6 +30,7 @@ const CONTRACT = '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
 export function BatchQuiz() {
   const router = useRouter();
   const { address } = useAccount();
+  const { context } = useFarcaster();
   const [phase, setPhase] = useState<'welcome'|'starting'|'quiz'|'submitting'|'done'>('welcome');
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<string[]>(Array(10).fill(''));
@@ -36,20 +38,43 @@ export function BatchQuiz() {
   const [cooldown, setCooldown] = useState(0);
   const [countdown, setCountdown] = useState(5);
   const [error, setError] = useState('');
+  const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
+
+  const displayAddress = farcasterAddress || address;
 
   const { data: lastTime, refetch } = useReadContract({
     address: CONTRACT as `0x${string}`,
     abi: ABI,
     functionName: 'lastQuizTime',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address }
+    args: displayAddress ? [displayAddress] : undefined,
+    query: { enabled: !!displayAddress }
   });
 
   const { writeContract: start, data: startHash, isPending: starting } = useWriteContract();
   const { writeContract: submit, data: submitHash, isPending: submitting } = useWriteContract();
 
   useEffect(() => {
-    if (address && lastTime !== undefined) {
+    const connectFarcaster = async () => {
+      if (context && !farcasterAddress) {
+        try {
+          const sdk = (await import('@farcaster/frame-sdk')).default;
+          const provider = sdk.wallet.ethProvider;
+          const accounts = await provider.request({ method: 'eth_requestAccounts' }) as string[];
+          if (accounts?.[0]) {
+            setFarcasterAddress(accounts[0]);
+            console.log('Farcaster wallet:', accounts[0]);
+          }
+        } catch (error) {
+          console.error('Farcaster wallet error:', error);
+        }
+      }
+    };
+    
+    if (context) connectFarcaster();
+  }, [context, farcasterAddress]);
+
+  useEffect(() => {
+    if (displayAddress && lastTime !== undefined) {
       const now = Math.floor(Date.now() / 1000);
       const next = Number(lastTime) + 604800;
       const remaining = Math.max(0, next - now);
@@ -64,17 +89,19 @@ export function BatchQuiz() {
         return () => clearInterval(timer);
       }
     }
-  }, [lastTime, address, refetch]);
+  }, [lastTime, displayAddress, refetch]);
 
   useEffect(() => {
     if (startHash && phase === 'starting') {
-      setTimeout(() => { setPhase('quiz'); setTime(120); refetch(); }, 1000);
+      console.log('Quiz started, hash:', startHash);
+      setTimeout(() => { setPhase('quiz'); setTime(120); refetch(); }, 2000);
     }
   }, [startHash, phase, refetch]);
 
   useEffect(() => {
     if (submitHash && phase === 'submitting') {
-      setTimeout(() => { setPhase('done'); refetch(); }, 1000);
+      console.log('Quiz submitted, hash:', submitHash);
+      setTimeout(() => { setPhase('done'); refetch(); }, 2000);
     }
   }, [submitHash, phase, refetch]);
 
@@ -108,13 +135,22 @@ export function BatchQuiz() {
 
   const handleStart = async () => {
     if (cooldown > 0) return setError('Quiz on cooldown');
+    
     try {
       setError('');
       setPhase('starting');
-      await start({ address: CONTRACT as `0x${string}`, abi: ABI, functionName: 'startQuizSession' });
+      console.log('Starting quiz session...');
+      
+      await start({ 
+        address: CONTRACT as `0x${string}`, 
+        abi: ABI, 
+        functionName: 'startQuizSession'
+      });
+      
     } catch (e) {
       const err = e as Error;
-      setError(err.message || 'Failed');
+      console.error('Start error:', err);
+      setError(err.message || 'Failed to start');
       setPhase('welcome');
     }
   };
@@ -124,15 +160,19 @@ export function BatchQuiz() {
     try {
       setError('');
       setPhase('submitting');
+      console.log('Submitting answers...');
+      
       await submit({
         address: CONTRACT as `0x${string}`,
         abi: ABI,
         functionName: 'submitBatchAnswers',
         args: [final as [string, string, string, string, string, string, string, string, string, string]]
       });
+      
     } catch (e) {
       const err = e as Error;
-      setError(err.message || 'Failed');
+      console.error('Submit error:', err);
+      setError(err.message || 'Failed to submit');
       setPhase('quiz');
     }
   };
@@ -160,6 +200,9 @@ export function BatchQuiz() {
         <div className="bg-blue-600/10 backdrop-blur-xl rounded-3xl p-16 border border-blue-500/30">
           <div className="text-8xl mb-6 animate-spin">⏳</div>
           <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Starting Quiz...</h2>
+          <p className="text-gray-400 mt-4">
+            {context ? 'Please approve in Farcaster wallet' : 'Please approve in your wallet'}
+          </p>
         </div>
       </div>
     );
@@ -240,8 +283,8 @@ export function BatchQuiz() {
         </div>
         {cooldown > 0 && <div className="bg-orange-500/20 border-2 border-orange-500/50 rounded-2xl p-6 mb-6 text-center"><p className="text-xl text-orange-200">Cooldown: {fmtCool(cooldown)}</p></div>}
         {error && <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6"><p className="text-red-300">{error}</p></div>}
-        <button onClick={handleStart} disabled={starting || cooldown > 0} className={`w-full py-5 rounded-2xl font-bold text-xl text-white ${cooldown === 0 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700' : 'bg-gray-600 opacity-50 cursor-not-allowed'}`}>
-          {starting ? 'Confirming...' : cooldown > 0 ? `Cooldown: ${fmtCool(cooldown)}` : '🚀 Start Challenge'}
+        <button onClick={handleStart} disabled={starting || cooldown > 0 || !displayAddress} className={`w-full py-5 rounded-2xl font-bold text-xl text-white ${cooldown === 0 && displayAddress ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700' : 'bg-gray-600 opacity-50 cursor-not-allowed'}`}>
+          {!displayAddress ? 'Connecting wallet...' : starting ? 'Confirming...' : cooldown > 0 ? `Cooldown: ${fmtCool(cooldown)}` : '🚀 Start Challenge'}
         </button>
       </div>
     </div>
