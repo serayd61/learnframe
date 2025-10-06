@@ -25,7 +25,9 @@ const CONTRACT = isAddress(rawAddress) ? getAddress(rawAddress) : '0xEfb23c57042
 const ABI = parseAbi([
   'function startQuizSession()',
   'function submitBatchAnswers(string[10] memory userAnswers)',
-  'function lastQuizTime(address) view returns (uint256)'
+  'function lastQuizTime(address) view returns (uint256)',
+  'function learnToken() view returns (address)',
+  'function REWARD_AMOUNT() view returns (uint256)'
 ]);
 
 interface EthereumProvider {
@@ -66,6 +68,35 @@ export function BatchQuiz() {
             console.log('Raw contract from env:', process.env.NEXT_PUBLIC_BATCH_QUIZ);
             console.log('Final contract address:', CONTRACT);
             console.log('Address is valid:', isAddress(CONTRACT));
+            
+            // Contract bilgilerini oku
+            try {
+              const sdk = (await import('@farcaster/frame-sdk')).default;
+              const provider = sdk.wallet.ethProvider;
+              
+              // Token address oku
+              const tokenAddressData = await provider.request({
+                method: 'eth_call',
+                params: [{
+                  to: CONTRACT,
+                  data: '0x2e35b278' // learnToken() function selector
+                }, 'latest']
+              });
+              console.log('Quiz contract token address:', tokenAddressData);
+              
+              // Reward amount oku
+              const rewardAmountData = await provider.request({
+                method: 'eth_call',
+                params: [{
+                  to: CONTRACT,
+                  data: '0x92c86012' // REWARD_AMOUNT() function selector
+                }, 'latest']
+              });
+              console.log('Quiz contract reward amount:', rewardAmountData);
+              
+            } catch (err) {
+              console.error('Contract info read error:', err);
+            }
           }
         } catch (err) {
           console.error('Farcaster init error:', err);
@@ -99,7 +130,19 @@ export function BatchQuiz() {
           }]
         });
         
-        console.log('Submit tx hash:', txHash);
+        console.log('✅ Submit tx hash:', txHash);
+        console.log('🎯 Quiz answers:', final);
+        console.log('📊 Correct answers expected:', QUIZ_QUESTIONS.map(q => q.answer));
+        
+        // Doğru cevap sayısını hesapla
+        const correctCount = final.filter((answer, index) => answer === QUIZ_QUESTIONS[index].answer).length;
+        console.log(`🏆 Score: ${correctCount}/10 correct answers`);
+        
+        if (correctCount === 10) {
+          console.log('🎉 Perfect score! Should receive 100 LEARN tokens');
+        } else {
+          console.log('❌ Not perfect score, might not receive tokens');
+        }
         
         // Quiz completion event trigger et
         localStorage.setItem('quizCompleted', Date.now().toString());
