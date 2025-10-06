@@ -68,6 +68,8 @@ export function BatchQuiz() {
             console.log('Raw contract from env:', process.env.NEXT_PUBLIC_BATCH_QUIZ);
             console.log('Final contract address:', CONTRACT);
             console.log('Address is valid:', CONTRACT.length === 42);
+            console.log('🔗 Check your quiz history:', `https://basescan.org/address/${accounts[0]}`);
+            console.log('🔗 Check contract:', `https://basescan.org/address/${CONTRACT}`);
             
             // Contract bilgilerini oku
             try {
@@ -163,7 +165,7 @@ export function BatchQuiz() {
       } else if ((e as { message?: string })?.message?.includes('nonce')) {
         errorMessage = 'Nonce too high, please reset wallet';
       } else if ((e as { message?: string })?.message?.includes('reverted')) {
-        errorMessage = 'Contract execution failed - Check if quiz is already completed';
+        errorMessage = 'Quiz failed - Possible reasons: Already taken (7-day cooldown), Need perfect score (10/10), or Contract out of tokens';
       } else if ((e as { message?: string })?.message) {
         errorMessage = (e as { message: string }).message;
       }
@@ -240,7 +242,7 @@ export function BatchQuiz() {
       } else if ((e as { message?: string })?.message?.includes('nonce')) {
         errorMessage = 'Nonce too high, please reset wallet';
       } else if ((e as { message?: string })?.message?.includes('reverted')) {
-        errorMessage = 'Contract execution failed - Check cooldown period';
+        errorMessage = 'Quiz start failed - Likely 7-day cooldown period active. Check your last quiz date on Basescan.';
       } else if ((e as { message?: string })?.message) {
         errorMessage = (e as { message: string }).message;
       }
