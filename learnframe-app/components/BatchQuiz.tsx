@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
-import { ethers } from 'ethers';
+import { encodeFunctionData, parseAbi } from 'viem';
 
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
@@ -21,11 +21,11 @@ const QUIZ_QUESTIONS = [
 ];
 
 const CONTRACT = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
-const ABI = [
+const ABI = parseAbi([
   'function startQuizSession()',
   'function submitBatchAnswers(string[10] memory userAnswers)',
   'function lastQuizTime(address) view returns (uint256)'
-];
+]);
 
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -73,14 +73,17 @@ export function BatchQuiz() {
   }, [context, farcasterAddress]);
 
   const handleSubmit = useCallback(async () => {
-    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]);
+    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]) as [string, string, string, string, string, string, string, string, string, string];
     try {
       setError('');
       setPhase('submitting');
       
       if (provider && farcasterAddress) {
-        const iface = new ethers.Interface(ABI);
-        const data = iface.encodeFunctionData('submitBatchAnswers', [final]);
+        const data = encodeFunctionData({
+          abi: ABI,
+          functionName: 'submitBatchAnswers',
+          args: [final]
+        });
         
         const txHash = await provider.request({
           method: 'eth_sendTransaction',
@@ -98,20 +101,20 @@ export function BatchQuiz() {
       } else {
         throw new Error('Wallet not connected');
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Submit error:', e);
       
       let errorMessage = 'Failed to submit quiz';
-      if (e?.code === 4001) {
+      if ((e as { code?: number })?.code === 4001) {
         errorMessage = 'Transaction rejected by user';
-      } else if (e?.message?.includes('insufficient funds')) {
+      } else if ((e as { message?: string })?.message?.includes('insufficient funds')) {
         errorMessage = 'Insufficient funds for gas';
-      } else if (e?.message?.includes('nonce')) {
+      } else if ((e as { message?: string })?.message?.includes('nonce')) {
         errorMessage = 'Nonce too high, please reset wallet';
-      } else if (e?.message?.includes('reverted')) {
+      } else if ((e as { message?: string })?.message?.includes('reverted')) {
         errorMessage = 'Contract execution failed - Check if quiz is already completed';
-      } else if (e?.message) {
-        errorMessage = e.message;
+      } else if ((e as { message?: string })?.message) {
+        errorMessage = (e as { message: string }).message;
       }
       
       setError(errorMessage);
@@ -153,8 +156,11 @@ export function BatchQuiz() {
       setPhase('starting');
       
       if (provider && farcasterAddress) {
-        const iface = new ethers.Interface(ABI);
-        const data = iface.encodeFunctionData('startQuizSession', []);
+        const data = encodeFunctionData({
+          abi: ABI,
+          functionName: 'startQuizSession',
+          args: []
+        });
         
         const txHash = await provider.request({
           method: 'eth_sendTransaction',
@@ -172,20 +178,20 @@ export function BatchQuiz() {
       } else {
         throw new Error('Wallet not connected');
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Start error:', e);
       
       let errorMessage = 'Failed to start quiz';
-      if (e?.code === 4001) {
+      if ((e as { code?: number })?.code === 4001) {
         errorMessage = 'Transaction rejected by user';
-      } else if (e?.message?.includes('insufficient funds')) {
+      } else if ((e as { message?: string })?.message?.includes('insufficient funds')) {
         errorMessage = 'Insufficient funds for gas';
-      } else if (e?.message?.includes('nonce')) {
+      } else if ((e as { message?: string })?.message?.includes('nonce')) {
         errorMessage = 'Nonce too high, please reset wallet';
-      } else if (e?.message?.includes('reverted')) {
+      } else if ((e as { message?: string })?.message?.includes('reverted')) {
         errorMessage = 'Contract execution failed - Check cooldown period';
-      } else if (e?.message) {
-        errorMessage = e.message;
+      } else if ((e as { message?: string })?.message) {
+        errorMessage = (e as { message: string }).message;
       }
       
       setError(errorMessage);

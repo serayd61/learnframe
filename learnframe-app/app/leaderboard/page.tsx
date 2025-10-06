@@ -1,39 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useReadContract, useAccount } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { useFarcaster } from '@/components/FarcasterProvider';
 
-interface User {
-  address: string;
-  score: number;
-  rank: number;
-}
-
-const LEADERBOARD_ABI = [
-  {
-    "inputs": [{"internalType": "uint256", "name": "count", "type": "uint256"}],
-    "name": "getTopUsers",
-    "outputs": [
-      {"internalType": "address[]", "name": "", "type": "address[]"},
-      {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
-
-const TOKEN_ABI = [
-  {
-    "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
+// Interfaces and ABIs removed - will be implemented later when backend integration is ready
 
 export default function LeaderboardPage() {
   const { address } = useAccount();

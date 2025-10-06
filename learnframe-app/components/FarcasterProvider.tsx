@@ -11,11 +11,23 @@ interface FarcasterContext {
   user?: FarcasterUser;
 }
 
+interface FarcasterSDK {
+  context: Promise<FarcasterContext>;
+  actions: {
+    ready: () => void;
+  };
+  wallet: {
+    ethProvider: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+    };
+  };
+}
+
 interface FarcasterContextType {
   context: FarcasterContext | null;
   isLoading: boolean;
   user: FarcasterUser | null;
-  sdk: any;
+  sdk: FarcasterSDK | null;
 }
 
 const FarcasterContextValue = createContext<FarcasterContextType>({
@@ -32,7 +44,7 @@ export function useFarcaster() {
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [context, setContext] = useState<FarcasterContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sdk, setSdk] = useState<any>(null);
+  const [sdk, setSdk] = useState<FarcasterSDK | null>(null);
 
   useEffect(() => {
     const initializeSDK = async () => {
