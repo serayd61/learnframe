@@ -41,7 +41,7 @@ export default function LeaderboardPage() {
 
   // User balance okuma
   const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
-    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: displayAddress ? [displayAddress] : undefined,
@@ -52,7 +52,7 @@ export default function LeaderboardPage() {
 
   // Total supply okuma
   const { data: totalSupply } = useReadContract({
-    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'totalSupply',
   });

@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
-import { encodeFunctionData, parseAbi, isAddress, getAddress } from 'viem';
+import { encodeFunctionData, parseAbi } from 'viem';
 
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
@@ -20,8 +20,8 @@ const QUIZ_QUESTIONS = [
   { id: 10, question: "What is the name of Base's major upgrade?", options: ["Granite", "Diamond", "Bedrock", "Crystal"], answer: "Bedrock", emoji: "🪨" }
 ];
 
-const rawAddress = (process.env.NEXT_PUBLIC_BATCH_QUIZ || '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61').trim();
-const CONTRACT = isAddress(rawAddress) ? getAddress(rawAddress) : '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
+// Force mainnet contract address
+const CONTRACT = '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
 const ABI = parseAbi([
   'function startQuizSession()',
   'function submitBatchAnswers(string[10] memory userAnswers)',

@@ -96,7 +96,7 @@ export default function Home() {
   const isUserConnected = isConnected || !!farcasterAddress;
 
   const { data: tokenBalance, refetch: refetchBalance, error: balanceError, isLoading: balanceLoading } = useReadContract({
-    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
     args: displayAddress ? [displayAddress] : undefined,
@@ -107,7 +107,7 @@ export default function Home() {
 
   // Contract test için totalSupply oku
   const { data: totalSupply, error: totalSupplyError } = useReadContract({
-    address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
+    address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'totalSupply',
   });
