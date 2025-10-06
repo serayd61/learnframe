@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useFarcaster } from '@/components/FarcasterProvider';
 
 const TOKEN_ABI = [
   {
@@ -19,7 +20,7 @@ const TOKEN_ABI = [
 const STATS = [
   { label: "Total Supply", value: "100M LEARN", icon: "💎" },
   { label: "Rewards Per Quiz", value: "100 LEARN", icon: "🎁" },
-  { label: "Network", value: "Base Sepolia", icon: "🌐" },
+  { label: "Network", value: "Base Mainnet", icon: "🌐" },
   { label: "Success Rate", value: "87%", icon: "📊" }
 ];
 
@@ -52,14 +53,44 @@ const FEATURES = [
 
 export default function Home() {
   const { address, isConnected } = useAccount();
+  const { context, isLoading: isFarcasterLoading } = useFarcaster();
   const [mounted, setMounted] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
+
+  // Farcaster wallet connect
+  useEffect(() => {
+    const connectFarcasterWallet = async () => {
+      if (context && !farcasterAddress) {
+        try {
+          const sdk = (await import('@farcaster/frame-sdk')).default;
+          const provider = sdk.wallet.ethProvider;
+          const accounts = await provider.request({ 
+            method: 'eth_requestAccounts' 
+          }) as string[];
+          if (accounts && accounts[0]) {
+            setFarcasterAddress(accounts[0]);
+            console.log('Farcaster wallet connected:', accounts[0]);
+          }
+        } catch (error) {
+          console.error('Farcaster wallet error:', error);
+        }
+      }
+    };
+    
+    if (context && !isFarcasterLoading) {
+      connectFarcasterWallet();
+    }
+  }, [context, isFarcasterLoading, farcasterAddress]);
+
+  const displayAddress = farcasterAddress || address;
+  const isUserConnected = isConnected || !!farcasterAddress;
 
   const { data: tokenBalance } = useReadContract({
     address: '0x1Cd95030e189e54755C1ccA28e24891250A79d50' as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
+    args: displayAddress ? [displayAddress] : undefined,
   });
 
   useEffect(() => {
@@ -86,29 +117,14 @@ export default function Home() {
             background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(139, 92, 246, 0.15), transparent 50%)`
           }}
         />
-        {/* Animated orbs */}
         <motion.div
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
+          animate={{ x: [0, 100, 0], y: [0, -100, 0] }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
           className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full filter blur-[128px] opacity-30"
         />
         <motion.div
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
+          animate={{ x: [0, -100, 0], y: [0, 100, 0] }}
+          transition={{ duration: 15, repeat: Infinity, repeatType: "reverse" }}
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500 rounded-full filter blur-[128px] opacity-30"
         />
       </div>
@@ -148,7 +164,7 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-4"
             >
-              {isConnected && (
+              {isUserConnected && (
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -158,7 +174,13 @@ export default function Home() {
                   <span className="ml-2 font-bold text-green-400">{balance} LEARN</span>
                 </motion.div>
               )}
-              <ConnectButton />
+              {context ? (
+                <div className="bg-purple-600/20 backdrop-blur px-4 py-2 rounded-xl border border-purple-500/30 text-sm">
+                  {farcasterAddress ? `${farcasterAddress.slice(0,6)}...${farcasterAddress.slice(-4)}` : 'Connecting...'}
+                </div>
+              ) : (
+                <ConnectButton />
+              )}
             </motion.div>
           </div>
         </div>
@@ -191,7 +213,6 @@ export default function Home() {
             Master blockchain knowledge, earn real rewards
           </motion.p>
           
-          {/* CTA Buttons */}
           <motion.div 
             className="flex flex-col md:flex-row gap-4 justify-center"
             initial={{ opacity: 0, y: 20 }}
@@ -211,7 +232,6 @@ export default function Home() {
                   whileHover={{ x: 0 }}
                   transition={{ duration: 0.3 }}
                 />
-                <span className="ml-2">→</span>
               </motion.button>
             </Link>
             
@@ -221,13 +241,12 @@ export default function Home() {
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 bg-white/5 backdrop-blur-xl rounded-2xl font-bold text-lg border border-white/20 hover:bg-white/10 transition"
               >
-                View Rankings 🏆
+                View Rankings
               </motion.button>
             </Link>
           </motion.div>
         </motion.div>
 
-        {/* Live Stats */}
         <motion.div 
           className="grid md:grid-cols-4 gap-6 mb-20"
           initial={{ opacity: 0, y: 40 }}
@@ -252,7 +271,6 @@ export default function Home() {
           ))}
         </motion.div>
 
-        {/* Features Grid */}
         <motion.div 
           className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20"
           initial={{ opacity: 0 }}
@@ -268,11 +286,6 @@ export default function Home() {
               whileHover={{ scale: 1.05, rotate: 1 }}
               className="relative group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500 -z-10"
-                style={{
-                  backgroundImage: `linear-gradient(to right, ${feature.color.replace('from-', '').replace('to-', '').split(' ').join(', ')})`
-                }}
-              />
               <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10 h-full group-hover:border-white/30 transition-all">
                 <div className="text-5xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
@@ -281,84 +294,15 @@ export default function Home() {
             </motion.div>
           ))}
         </motion.div>
-
-        {/* How It Works */}
-        <motion.div 
-          className="relative"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-transparent to-pink-600/20 blur-3xl"></div>
-          <div className="relative bg-gradient-to-br from-purple-600/10 to-pink-600/10 backdrop-blur-xl rounded-3xl p-12 border border-purple-500/20">
-            <h2 className="text-5xl font-bold text-center mb-12 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              How It Works
-            </h2>
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { step: "01", title: "Connect", desc: "Link your wallet", icon: "🔗" },
-                { step: "02", title: "Quiz", desc: "Answer questions", icon: "📝" },
-                { step: "03", title: "Earn", desc: "Get LEARN tokens", icon: "💰" },
-                { step: "04", title: "Rank", desc: "Climb leaderboard", icon: "📈" }
-              ].map((item, i) => (
-                <motion.div 
-                  key={item.step}
-                  className="text-center group"
-                  whileHover={{ y: -10 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.4 + i * 0.1 }}
-                >
-                  <div className="relative mx-auto w-24 h-24 mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur-lg opacity-50 group-hover:opacity-100 transition"></div>
-                    <div className="relative bg-black rounded-full w-full h-full flex items-center justify-center border-2 border-purple-500">
-                      <span className="text-3xl">{item.icon}</span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-purple-400 mb-2">{item.step}</div>
-                  <h4 className="font-bold text-xl mb-2">{item.title}</h4>
-                  <p className="text-sm text-gray-400">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Final CTA */}
-        <motion.div 
-          className="text-center mt-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.6 }}
-        >
-          <motion.h2 
-            className="text-5xl font-bold mb-6"
-            whileInView={{ scale: [0.9, 1] }}
-            transition={{ duration: 0.5 }}
-          >
-            Ready to Start Earning?
-          </motion.h2>
-          <p className="text-xl text-gray-400 mb-8">Join thousands of learners earning rewards daily</p>
-          <Link href="/quiz">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="px-12 py-5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl font-bold text-xl text-white shadow-2xl hover:shadow-green-500/25 transition"
-            >
-              Launch Quiz App 🚀
-            </motion.button>
-          </Link>
-        </motion.div>
       </section>
 
-      {/* Floating Elements */}
       <div className="fixed bottom-8 right-8 z-50">
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-2xl"
         >
-          🔥 Live on Base Sepolia
+          Live on Base Mainnet
         </motion.div>
       </div>
     </main>

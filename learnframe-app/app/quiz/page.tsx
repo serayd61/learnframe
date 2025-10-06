@@ -6,15 +6,17 @@ import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useFarcaster } from '@/components/FarcasterProvider';
 
 export default function QuizPage() {
   const { isConnected } = useAccount();
+  const { context } = useFarcaster();
   const [mounted, setMounted] = useState(false);
   const [particles, setParticles] = useState<{ x: number; y: number; id: number }[]>([]);
+  const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    // Create floating particles
     const newParticles = Array.from({ length: 20 }, (_, i) => ({
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -23,15 +25,38 @@ export default function QuizPage() {
     setParticles(newParticles);
   }, []);
 
+  useEffect(() => {
+    const connectFarcasterWallet = async () => {
+      if (context && !farcasterAddress) {
+        try {
+          const sdk = (await import('@farcaster/frame-sdk')).default;
+          const provider = sdk.wallet.ethProvider;
+          const accounts = await provider.request({ 
+            method: 'eth_requestAccounts' 
+          }) as string[];
+          if (accounts && accounts[0]) {
+            setFarcasterAddress(accounts[0]);
+          }
+        } catch (error) {
+          console.error('Farcaster wallet error:', error);
+        }
+      }
+    };
+    
+    if (context) {
+      connectFarcasterWallet();
+    }
+  }, [context, farcasterAddress]);
+
+  const isUserConnected = isConnected || !!farcasterAddress;
+
   if (!mounted) return null;
 
   return (
     <main className="min-h-screen bg-black overflow-hidden">
-      {/* Animated Background */}
       <div className="fixed inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-black to-purple-900/20"></div>
         
-        {/* Floating Particles */}
         {particles.map((particle) => (
           <motion.div
             key={particle.id}
@@ -49,32 +74,18 @@ export default function QuizPage() {
           />
         ))}
         
-        {/* Gradient Orbs */}
         <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-          }}
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+          transition={{ duration: 20, repeat: Infinity }}
           className="absolute top-1/3 -left-20 w-96 h-96 bg-indigo-500 rounded-full filter blur-[150px] opacity-20"
         />
         <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [360, 180, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-          }}
+          animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
+          transition={{ duration: 25, repeat: Infinity }}
           className="absolute bottom-1/3 -right-20 w-96 h-96 bg-purple-500 rounded-full filter blur-[150px] opacity-20"
         />
       </div>
 
-      {/* Navbar */}
       <nav className="relative z-50 border-b border-white/10 backdrop-blur-xl bg-black/50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -102,14 +113,19 @@ export default function QuizPage() {
                 </Link>
               </div>
             </motion.div>
-            <ConnectButton />
+            {context ? (
+              <div className="bg-purple-600/20 backdrop-blur px-4 py-2 rounded-xl border border-purple-500/30 text-sm">
+                {farcasterAddress ? `${farcasterAddress.slice(0,6)}...${farcasterAddress.slice(-4)}` : 'Connecting...'}
+              </div>
+            ) : (
+              <ConnectButton />
+            )}
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
       <div className="relative z-10 container mx-auto px-6 py-12">
-        {!isConnected ? (
+        {!isUserConnected ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -129,7 +145,11 @@ export default function QuizPage() {
               Please connect your wallet to start the quiz
             </p>
             <div className="inline-block">
-              <ConnectButton />
+              {context ? (
+                <div className="text-gray-400">Connecting Farcaster wallet...</div>
+              ) : (
+                <ConnectButton />
+              )}
             </div>
           </motion.div>
         ) : (
