@@ -15,12 +15,14 @@ interface FarcasterContextType {
   context: FarcasterContext | null;
   isLoading: boolean;
   user: FarcasterUser | null;
+  sdk: any;
 }
 
 const FarcasterContextValue = createContext<FarcasterContextType>({
   context: null,
   isLoading: true,
   user: null,
+  sdk: null,
 });
 
 export function useFarcaster() {
@@ -30,18 +32,24 @@ export function useFarcaster() {
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [context, setContext] = useState<FarcasterContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sdk, setSdk] = useState<any>(null);
 
   useEffect(() => {
     const initializeSDK = async () => {
       try {
-        const sdk = (await import('@farcaster/frame-sdk')).default;
-        const frameContext = await sdk.context;
-        console.log('Frame context:', frameContext);
+        const farcasterSDK = (await import('@farcaster/frame-sdk')).default;
+        const frameContext = await farcasterSDK.context;
+        console.log('✅ Frame context loaded:', frameContext);
+        
         setContext(frameContext as FarcasterContext);
-        sdk.actions.ready();
-        console.log('SDK ready() called!');
+        setSdk(farcasterSDK);
+        
+        farcasterSDK.actions.ready();
+        console.log('✅ SDK ready() called!');
       } catch (error) {
-        console.log('Frame SDK error or not in frame:', error);
+        console.log('⚠️ Frame SDK error or not in frame:', error);
+        setContext(null);
+        setSdk(null);
       } finally {
         setIsLoading(false);
       }
@@ -57,7 +65,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       value={{ 
         context, 
         isLoading,
-        user: context?.user || null
+        user: context?.user || null,
+        sdk
       }}
     >
       {children}
