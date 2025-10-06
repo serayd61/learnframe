@@ -67,7 +67,7 @@ export function BatchQuiz() {
             console.log('Farcaster wallet connected:', accounts[0]);
             console.log('Raw contract from env:', process.env.NEXT_PUBLIC_BATCH_QUIZ);
             console.log('Final contract address:', CONTRACT);
-            console.log('Address is valid:', isAddress(CONTRACT));
+            console.log('Address is valid:', CONTRACT.length === 42);
             
             // Contract bilgilerini oku
             try {
