@@ -20,8 +20,12 @@ const QUIZ_QUESTIONS = [
   { id: 10, question: "What is the name of Base's major upgrade?", options: ["Granite", "Diamond", "Bedrock", "Crystal"], answer: "Bedrock", emoji: "🪨" }
 ];
 
-const CONTRACT = '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
-const ABI = ['function startQuizSession()', 'function submitBatchAnswers(string[10])'];
+const CONTRACT = process.env.NEXT_PUBLIC_BATCH_QUIZ || '0xaC7A53955c5620389F880e5453e2d1c066d1A0b9';
+const ABI = [
+  'function startQuizSession()',
+  'function submitBatchAnswers(string[10] memory userAnswers)',
+  'function lastQuizTime(address) view returns (uint256)'
+];
 
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -48,11 +52,17 @@ export function BatchQuiz() {
         try {
           const sdk = (await import('@farcaster/frame-sdk')).default;
           const ethProvider = sdk.wallet.ethProvider;
+          
+          // Chain kontrolü
+          const chainId = await ethProvider.request({ method: 'eth_chainId' });
+          console.log('Current chain ID:', chainId, 'Expected: 0x14A34 (Base Sepolia)');
+          
           const accounts = await ethProvider.request({ method: 'eth_requestAccounts' }) as string[];
           if (accounts?.[0]) {
             setFarcasterAddress(accounts[0]);
             setProvider(ethProvider);
             console.log('Farcaster wallet connected:', accounts[0]);
+            console.log('Contract address:', CONTRACT);
           }
         } catch (err) {
           console.error('Farcaster init error:', err);
@@ -78,6 +88,8 @@ export function BatchQuiz() {
             from: farcasterAddress,
             to: CONTRACT,
             data: data,
+            gas: '0x493E0', // 300,000
+            value: '0x0'
           }]
         });
         
@@ -86,10 +98,23 @@ export function BatchQuiz() {
       } else {
         throw new Error('Wallet not connected');
       }
-    } catch (e) {
-      const err = e as Error;
-      console.error('Submit error:', err);
-      setError(err.message || 'Failed to submit');
+    } catch (e: any) {
+      console.error('Submit error:', e);
+      
+      let errorMessage = 'Failed to submit quiz';
+      if (e?.code === 4001) {
+        errorMessage = 'Transaction rejected by user';
+      } else if (e?.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for gas';
+      } else if (e?.message?.includes('nonce')) {
+        errorMessage = 'Nonce too high, please reset wallet';
+      } else if (e?.message?.includes('reverted')) {
+        errorMessage = 'Contract execution failed - Check if quiz is already completed';
+      } else if (e?.message) {
+        errorMessage = e.message;
+      }
+      
+      setError(errorMessage);
       setPhase('quiz');
     }
   }, [answers, provider, farcasterAddress]);
@@ -137,6 +162,8 @@ export function BatchQuiz() {
             from: farcasterAddress,
             to: CONTRACT,
             data: data,
+            gas: '0x249F0', // 150,000
+            value: '0x0'
           }]
         });
         
@@ -145,10 +172,23 @@ export function BatchQuiz() {
       } else {
         throw new Error('Wallet not connected');
       }
-    } catch (e) {
-      const err = e as Error;
-      console.error('Start error:', err);
-      setError(err.message || 'Failed to start');
+    } catch (e: any) {
+      console.error('Start error:', e);
+      
+      let errorMessage = 'Failed to start quiz';
+      if (e?.code === 4001) {
+        errorMessage = 'Transaction rejected by user';
+      } else if (e?.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for gas';
+      } else if (e?.message?.includes('nonce')) {
+        errorMessage = 'Nonce too high, please reset wallet';
+      } else if (e?.message?.includes('reverted')) {
+        errorMessage = 'Contract execution failed - Check cooldown period';
+      } else if (e?.message) {
+        errorMessage = e.message;
+      }
+      
+      setError(errorMessage);
       setPhase('welcome');
     }
   };

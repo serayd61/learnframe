@@ -3,14 +3,14 @@
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { base } from 'wagmi/chains';
+import { baseSepolia } from 'wagmi/chains';
 import { FarcasterProvider } from '@/components/FarcasterProvider';
 import '@rainbow-me/rainbowkit/styles.css';
 
 const config = getDefaultConfig({
   appName: 'LearnFrame',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
-  chains: [base],
+  chains: [baseSepolia],
   ssr: true,
 });
 
