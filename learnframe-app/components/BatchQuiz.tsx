@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWriteContract, useAccount, useReadContract } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,16 +60,12 @@ export function BatchQuiz() {
           const sdk = (await import('@farcaster/frame-sdk')).default;
           const provider = sdk.wallet.ethProvider;
           const accounts = await provider.request({ method: 'eth_requestAccounts' }) as string[];
-          if (accounts?.[0]) {
-            setFarcasterAddress(accounts[0]);
-            console.log('Farcaster wallet:', accounts[0]);
-          }
+          if (accounts?.[0]) setFarcasterAddress(accounts[0]);
         } catch (error) {
           console.error('Farcaster wallet error:', error);
         }
       }
     };
-    
     if (context) connectFarcaster();
   }, [context, farcasterAddress]);
 
@@ -93,17 +89,33 @@ export function BatchQuiz() {
 
   useEffect(() => {
     if (startHash && phase === 'starting') {
-      console.log('Quiz started, hash:', startHash);
       setTimeout(() => { setPhase('quiz'); setTime(120); refetch(); }, 2000);
     }
   }, [startHash, phase, refetch]);
 
   useEffect(() => {
     if (submitHash && phase === 'submitting') {
-      console.log('Quiz submitted, hash:', submitHash);
       setTimeout(() => { setPhase('done'); refetch(); }, 2000);
     }
   }, [submitHash, phase, refetch]);
+
+  const handleSubmit = useCallback(async () => {
+    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]);
+    try {
+      setError('');
+      setPhase('submitting');
+      await submit({
+        address: CONTRACT as `0x${string}`,
+        abi: ABI,
+        functionName: 'submitBatchAnswers',
+        args: [final as [string, string, string, string, string, string, string, string, string, string]]
+      });
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || 'Failed to submit');
+      setPhase('quiz');
+    }
+  }, [answers, submit]);
 
   useEffect(() => {
     if (phase === 'quiz' && time > 0) {
@@ -116,7 +128,7 @@ export function BatchQuiz() {
       }), 1000);
       return () => clearInterval(t);
     }
-  }, [phase, time]);
+  }, [phase, time, handleSubmit]);
 
   useEffect(() => {
     if (phase === 'done') {
@@ -135,45 +147,14 @@ export function BatchQuiz() {
 
   const handleStart = async () => {
     if (cooldown > 0) return setError('Quiz on cooldown');
-    
     try {
       setError('');
       setPhase('starting');
-      console.log('Starting quiz session...');
-      
-      await start({ 
-        address: CONTRACT as `0x${string}`, 
-        abi: ABI, 
-        functionName: 'startQuizSession'
-      });
-      
+      await start({ address: CONTRACT as `0x${string}`, abi: ABI, functionName: 'startQuizSession' });
     } catch (e) {
       const err = e as Error;
-      console.error('Start error:', err);
       setError(err.message || 'Failed to start');
       setPhase('welcome');
-    }
-  };
-
-  const handleSubmit = async () => {
-    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]);
-    try {
-      setError('');
-      setPhase('submitting');
-      console.log('Submitting answers...');
-      
-      await submit({
-        address: CONTRACT as `0x${string}`,
-        abi: ABI,
-        functionName: 'submitBatchAnswers',
-        args: [final as [string, string, string, string, string, string, string, string, string, string]]
-      });
-      
-    } catch (e) {
-      const err = e as Error;
-      console.error('Submit error:', err);
-      setError(err.message || 'Failed to submit');
-      setPhase('quiz');
     }
   };
 
@@ -200,9 +181,7 @@ export function BatchQuiz() {
         <div className="bg-blue-600/10 backdrop-blur-xl rounded-3xl p-16 border border-blue-500/30">
           <div className="text-8xl mb-6 animate-spin">⏳</div>
           <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Starting Quiz...</h2>
-          <p className="text-gray-400 mt-4">
-            {context ? 'Please approve in Farcaster wallet' : 'Please approve in your wallet'}
-          </p>
+          <p className="text-gray-400 mt-4">{context ? 'Please approve in Farcaster wallet' : 'Please approve in your wallet'}</p>
         </div>
       </div>
     );
