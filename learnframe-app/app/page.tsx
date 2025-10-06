@@ -70,7 +70,9 @@ export default function Home() {
           }) as string[];
           if (accounts && accounts[0]) {
             setFarcasterAddress(accounts[0]);
-            console.log('Farcaster wallet connected:', accounts[0]);
+            console.log('✅ Farcaster wallet connected:', accounts[0]);
+          } else {
+            console.log('❌ No Farcaster accounts found');
           }
         } catch (error) {
           console.error('Farcaster wallet error:', error);
@@ -86,7 +88,7 @@ export default function Home() {
   const displayAddress = farcasterAddress || address;
   const isUserConnected = isConnected || !!farcasterAddress;
 
-  const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
+  const { data: tokenBalance, refetch: refetchBalance, error: balanceError, isLoading: balanceLoading } = useReadContract({
     address: (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50') as `0x${string}`,
     abi: TOKEN_ABI,
     functionName: 'balanceOf',
@@ -95,6 +97,22 @@ export default function Home() {
       enabled: !!displayAddress,
     }
   });
+
+  // Debug logs
+  useEffect(() => {
+    console.log('🔍 Balance Debug Info:');
+    console.log('- Display Address:', displayAddress);
+    console.log('- Farcaster Address:', farcasterAddress);
+    console.log('- Wagmi Address:', address);
+    console.log('- Token Contract (env):', process.env.NEXT_PUBLIC_LEARN_TOKEN);
+    console.log('- Token Contract (final):', (process.env.NEXT_PUBLIC_LEARN_TOKEN || '0x1Cd95030e189e54755C1ccA28e24891250A79d50'));
+    console.log('- Token Balance:', tokenBalance);
+    console.log('- Balance Error:', balanceError);
+    console.log('- Is Loading:', balanceLoading);
+    console.log('- Is Connected:', isUserConnected);
+    console.log('- Has Context:', !!context);
+    console.log('- Farcaster Loading:', isFarcasterLoading);
+  }, [displayAddress, farcasterAddress, address, tokenBalance, balanceError, balanceLoading, isUserConnected, context, isFarcasterLoading]);
 
   useEffect(() => {
     setMounted(true);
@@ -192,14 +210,21 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-4"
             >
-              {isUserConnected && (
+              {displayAddress && (
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur px-4 py-2 rounded-xl border border-green-500/30"
                 >
                   <span className="text-sm text-gray-300">Balance:</span>
-                  <span className="ml-2 font-bold text-green-400">{balance} LEARN</span>
+                  <span className="ml-2 font-bold text-green-400">
+                    {balanceLoading ? '⏳ Loading...' : `${balance} LEARN`}
+                  </span>
+                  {balanceError && (
+                    <div className="text-xs text-red-400 mt-1">
+                      Error: {balanceError.message}
+                    </div>
+                  )}
                 </motion.div>
               )}
               {context ? (
