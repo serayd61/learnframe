@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
+import { ethers } from 'ethers';
 
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
@@ -22,6 +23,10 @@ const QUIZ_QUESTIONS = [
 const CONTRACT = '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
 const ABI = ['function startQuizSession()', 'function submitBatchAnswers(string[10])'];
 
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 export function BatchQuiz() {
   const router = useRouter();
   const { address: wagmiAddress } = useAccount();
@@ -33,7 +38,7 @@ export function BatchQuiz() {
   const [countdown, setCountdown] = useState(5);
   const [error, setError] = useState('');
   const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
-  const [provider, setProvider] = useState<any>(null);
+  const [provider, setProvider] = useState<EthereumProvider | null>(null);
 
   const address = farcasterAddress || wagmiAddress;
 
@@ -64,8 +69,6 @@ export function BatchQuiz() {
       setPhase('submitting');
       
       if (provider && farcasterAddress) {
-        // Farcaster SDK transaction
-        const { ethers } = await import('ethers');
         const iface = new ethers.Interface(ABI);
         const data = iface.encodeFunctionData('submitBatchAnswers', [final]);
         
@@ -125,7 +128,6 @@ export function BatchQuiz() {
       setPhase('starting');
       
       if (provider && farcasterAddress) {
-        const { ethers } = await import('ethers');
         const iface = new ethers.Interface(ABI);
         const data = iface.encodeFunctionData('startQuizSession', []);
         
