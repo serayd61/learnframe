@@ -70,7 +70,7 @@ export default function Home() {
     const connectFarcasterWallet = async () => {
       if (context && !farcasterAddress) {
         try {
-          const sdk = (await import('@farcaster/frame-sdk')).default;
+          const sdk = (await import('@farcaster/miniapp-sdk')).then(m => m.sdk);
           const provider = sdk.wallet.ethProvider;
           const accounts = await provider.request({ 
             method: 'eth_requestAccounts' 

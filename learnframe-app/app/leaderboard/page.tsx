@@ -64,7 +64,7 @@ export default function LeaderboardPage() {
     const connectFarcaster = async () => {
       if (context && !farcasterAddress) {
         try {
-          const sdk = (await import('@farcaster/frame-sdk')).default;
+          const sdk = (await import('@farcaster/miniapp-sdk')).then(m => m.sdk);
           const provider = sdk.wallet.ethProvider;
           const accounts = await provider.request({ method: 'eth_requestAccounts' }) as string[];
           if (accounts?.[0]) setFarcasterAddress(accounts[0]);
