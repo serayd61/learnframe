@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Toaster } from 'react-hot-toast';
+// import { Analytics } from '@vercel/analytics/react';
+// import { SpeedInsights } from '@vercel/speed-insights/next';
+// import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -300,35 +300,12 @@ export default function RootLayout({
           </main>
 
           {/* Global Toast Notifications */}
-          <Toaster
-            position="bottom-center"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'rgba(0, 0, 0, 0.8)',
-                color: '#fff',
-                border: '1px solid rgba(124, 58, 237, 0.3)',
-                backdropFilter: 'blur(10px)',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#10B981',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#EF4444',
-                  secondary: '#fff',
-                },
-              },
-            }}
-          />
+          {/* <Toaster /> */}
         </Providers>
 
         {/* Analytics & Performance Monitoring */}
-        <Analytics />
-        <SpeedInsights />
+        {/* <Analytics /> */}
+        {/* <SpeedInsights /> */}
 
         {/* Performance Observer for Core Web Vitals */}
         <script

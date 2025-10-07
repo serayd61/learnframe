@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { useFarcaster } from '@/components/FarcasterProvider';
 import QuizManagerABI from '@/lib/contracts/QuizManagerV2.json';
+import { ethers } from 'ethers';
 
 const QUIZ_DATA = [
   { id: 1, question: "What is the native token of Base?", answer: "ETH", reward: 10 },
@@ -16,37 +17,101 @@ export function Quiz() {
   const [currentQuiz, setCurrentQuiz] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userAddress, setUserAddress] = useState<string | null>(null);
 
-  const { writeContract, data: hash } = useWriteContract();
-  const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { ethProvider, isConnected, user } = useFarcaster();
+
+  // Get user address when Farcaster wallet connects
+  useEffect(() => {
+    const getUserAddress = async () => {
+      if (ethProvider && isConnected) {
+        try {
+          const provider = new ethers.BrowserProvider(ethProvider as ethers.Eip1193Provider);
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+          setUserAddress(address);
+          console.log('🔗 Connected address:', address);
+        } catch (error) {
+          console.error('Failed to get address:', error);
+        }
+      } else {
+        setUserAddress(null);
+      }
+    };
+    
+    getUserAddress();
+  }, [ethProvider, isConnected]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userAnswer.trim()) return;
+    if (!userAnswer.trim() || isSubmitting) return;
+
+    // Check if we have wallet connection
+    if (!isConnected || !ethProvider || !userAddress) {
+      setFeedback('❌ Wallet not connected. Please open in Farcaster frame.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFeedback('⏳ Submitting answer to blockchain...');
 
     try {
-      writeContract({
-        address: process.env.NEXT_PUBLIC_QUIZ_MANAGER as `0x${string}`,
-        abi: QuizManagerABI.abi,
-        functionName: 'submitAnswer',
-        args: [BigInt(currentQuiz + 1), userAnswer],
+      console.log('🎯 Submitting answer:', {
+        quizId: currentQuiz + 1,
+        answer: userAnswer,
+        contract: process.env.NEXT_PUBLIC_QUIZ_MANAGER,
+        user: user?.fid,
+        address: userAddress
       });
 
-      setFeedback('Submitting answer...');
+      // Use ethers directly with Farcaster provider
+      const provider = new ethers.BrowserProvider(ethProvider as ethers.Eip1193Provider);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_QUIZ_MANAGER!,
+        QuizManagerABI.abi,
+        signer
+      );
+
+      const tx = await contract.submitAnswer(BigInt(currentQuiz + 1), userAnswer);
+      setFeedback('⏳ Transaction submitted... waiting for confirmation');
+      
+      const receipt = await tx.wait();
+      console.log('✅ Transaction confirmed:', receipt);
+      
+      setFeedback(`✅ Answer submitted! You earned ${QUIZ_DATA[currentQuiz].reward} LEARN tokens!`);
+      setIsSubmitting(false);
+
     } catch (error) {
-      console.error('Error:', error);
-      setFeedback('Error submitting answer');
+      console.error('❌ Transaction error:', error);
+      setFeedback('❌ Error submitting answer: ' + (error as Error).message);
+      setIsSubmitting(false);
     }
   };
 
-  if (isSuccess) {
-    setFeedback(`✅ Answer submitted! You might have earned ${QUIZ_DATA[currentQuiz].reward} LEARN!`);
-  }
+  // Transaction handling is now done directly in handleSubmit
 
   const quiz = QUIZ_DATA[currentQuiz];
 
   return (
     <div className="bg-slate-800 p-6 rounded-lg max-w-2xl mx-auto">
+      {/* Connection Status */}
+      <div className="mb-4 text-center">
+        {isConnected && userAddress ? (
+          <div className="text-green-400 text-sm">
+            ✅ Connected as {user?.username || `FID ${user?.fid}`} ({userAddress.slice(0, 6)}...{userAddress.slice(-4)})
+          </div>
+        ) : isConnected ? (
+          <div className="text-yellow-400 text-sm">
+            🔗 Connecting wallet...
+          </div>
+        ) : (
+          <div className="text-yellow-400 text-sm">
+            ⚠️ Open in Farcaster frame to connect wallet
+          </div>
+        )}
+      </div>
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm text-slate-400">Question {currentQuiz + 1} of {QUIZ_DATA.length}</span>
@@ -69,25 +134,25 @@ export function Quiz() {
           onChange={(e) => setUserAnswer(e.target.value)}
           placeholder="Your answer..."
           className="w-full px-4 py-2 bg-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={isLoading}
+          disabled={isSubmitting}
         />
 
         <button
           type="submit"
-          disabled={isLoading || !userAnswer.trim()}
+          disabled={isSubmitting || !userAnswer.trim() || !isConnected || !userAddress}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 px-4 py-2 rounded-lg font-bold"
         >
-          {isLoading ? 'Submitting...' : 'Submit Answer'}
+          {isSubmitting ? 'Submitting...' : !isConnected || !userAddress ? 'Connect Wallet' : 'Submit Answer'}
         </button>
       </form>
 
       {feedback && (
-        <div className={`mt-4 p-3 rounded-lg ${isSuccess ? 'bg-green-900' : 'bg-blue-900'}`}>
+        <div className={`mt-4 p-3 rounded-lg ${feedback.includes('✅') ? 'bg-green-900' : 'bg-blue-900'}`}>
           {feedback}
         </div>
       )}
 
-      {currentQuiz < QUIZ_DATA.length - 1 && isSuccess && (
+      {currentQuiz < QUIZ_DATA.length - 1 && feedback?.includes('✅') && (
         <button
           onClick={() => {
             setCurrentQuiz(currentQuiz + 1);

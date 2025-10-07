@@ -11,15 +11,17 @@ interface FarcasterContext {
   user?: FarcasterUser;
 }
 
+interface EthProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 interface FarcasterSDK {
   context: Promise<FarcasterContext>;
   actions: {
     ready: () => void;
   };
   wallet: {
-    ethProvider: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-    };
+    ethProvider: EthProvider;
   };
 }
 
@@ -28,6 +30,8 @@ interface FarcasterContextType {
   isLoading: boolean;
   user: FarcasterUser | null;
   sdk: FarcasterSDK | null;
+  ethProvider: EthProvider | null;
+  isConnected: boolean;
 }
 
 const FarcasterContextValue = createContext<FarcasterContextType>({
@@ -35,6 +39,8 @@ const FarcasterContextValue = createContext<FarcasterContextType>({
   isLoading: true,
   user: null,
   sdk: null,
+  ethProvider: null,
+  isConnected: false,
 });
 
 export function useFarcaster() {
@@ -45,6 +51,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [context, setContext] = useState<FarcasterContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sdk, setSdk] = useState<FarcasterSDK | null>(null);
+  const [ethProvider, setEthProvider] = useState<EthProvider | null>(null);
 
   useEffect(() => {
     const initializeSDK = async () => {
@@ -56,12 +63,21 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         setContext(frameContext as FarcasterContext);
         setSdk(farcasterSDK);
         
+        // Get the ethereum provider from Farcaster wallet
+        if (farcasterSDK.wallet?.ethProvider) {
+          setEthProvider(farcasterSDK.wallet.ethProvider);
+          console.log('✅ Farcaster wallet provider available!');
+        } else {
+          console.log('⚠️ Farcaster wallet provider not available');
+        }
+        
         farcasterSDK.actions.ready();
         console.log('✅ SDK ready() called!');
       } catch (error) {
         console.log('⚠️ Frame SDK error or not in frame:', error);
         setContext(null);
         setSdk(null);
+        setEthProvider(null);
       } finally {
         setIsLoading(false);
       }
@@ -78,7 +94,9 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         context, 
         isLoading,
         user: context?.user || null,
-        sdk
+        sdk,
+        ethProvider,
+        isConnected: !!ethProvider && !!context?.user
       }}
     >
       {children}
