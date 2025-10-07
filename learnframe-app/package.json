@@ -5,7 +5,7 @@
   "description": "Learn blockchain knowledge, earn LEARN tokens on Base - Now with Mini-App support",
   "keywords": [
     "blockchain",
-    "education", 
+    "education",
     "base",
     "web3",
     "mini-app",
@@ -52,8 +52,8 @@
     "ethers": "^6.15.0",
     "framer-motion": "^12.23.22",
     "next": "15.5.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
     "react-hot-toast": "^2.4.1",
     "viem": "^2.37.12",
     "wagmi": "^2.17.5"
@@ -100,8 +100,13 @@
       "user.profile",
       "notifications.push"
     ],
-    "supportedChains": ["base"],
-    "categories": ["education", "defi"],
+    "supportedChains": [
+      "base"
+    ],
+    "categories": [
+      "education",
+      "defi"
+    ],
     "minSdkVersion": "0.1.0"
   }
 }

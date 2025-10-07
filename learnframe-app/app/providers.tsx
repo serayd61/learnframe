@@ -1,32 +1,53 @@
 'use client';
 
-import { WagmiProvider } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { base } from 'wagmi/chains';
-import { FarcasterProvider } from '@/components/FarcasterProvider';
+import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
-
-// Hybrid config: RainbowKit for external wallets + Farcaster integration
-const config = getDefaultConfig({
-  appName: 'LearnFrame',
-  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
-  chains: [base],
-  ssr: true,
-});
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { base } from 'viem/chains';
+import { WagmiProvider } from 'wagmi';
+import { wagmiConfig } from './wagmi';
+import { useEffect } from 'react';
+import sdk from '@farcaster/frame-sdk';
 
 const queryClient = new QueryClient();
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers(props: { children: ReactNode }) {
+  // Initialize Farcaster SDK and call ready when loaded
+  useEffect(() => {
+    const initSDK = async () => {
+      try {
+        // Check if we're in a Farcaster context
+        const context = await sdk.context;
+        console.log('Farcaster context:', context);
+        
+        // Signal that the app is ready to be displayed
+        sdk.actions.ready();
+        console.log('✅ Farcaster SDK ready called');
+      } catch (error) {
+        console.log('Not in Farcaster context or error:', error);
+        // Still call ready to hide splash screen
+        sdk.actions.ready();
+      }
+    };
+
+    initSDK();
+  }, []);
+
   return (
-    <FarcasterProvider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>
-            {children}
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <OnchainKitProvider
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+          chain={base}
+        >
+          <RainbowKitProvider modalSize="compact">
+            {props.children}
           </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </FarcasterProvider>
+        </OnchainKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
