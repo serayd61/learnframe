@@ -7,27 +7,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
 import { encodeFunctionData, parseAbi } from 'viem';
 
+// Quiz questions matching the contract setup (first 5 are in contract)
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
   { id: 2, question: "Which company developed Base?", options: ["Binance", "Coinbase", "Kraken", "OpenSea"], answer: "Coinbase", emoji: "🏢" },
   { id: 3, question: "What is Base built on?", options: ["Polygon", "Arbitrum", "Optimism", "Avalanche"], answer: "Optimism", emoji: "🔧" },
   { id: 4, question: "Is Base EVM compatible?", options: ["Yes", "No", "Partially", "Only for NFTs"], answer: "Yes", emoji: "✅" },
-  { id: 5, question: "What type of network is Base?", options: ["Layer1", "Layer2", "Layer3", "Sidechain"], answer: "Layer2", emoji: "🔄" },
-  { id: 6, question: "What is Base's underlying blockchain?", options: ["Bitcoin", "Solana", "Ethereum", "Cardano"], answer: "Ethereum", emoji: "⛓️" },
-  { id: 7, question: "What year was Base launched?", options: ["2021", "2022", "2023", "2024"], answer: "2023", emoji: "📅" },
-  { id: 8, question: "What type of rollup is Base?", options: ["Optimistic", "ZK", "Hybrid", "Plasma"], answer: "Optimistic", emoji: "🚀" },
-  { id: 9, question: "Are gas fees on Base higher or lower than Ethereum?", options: ["Higher", "Lower", "Same", "Variable"], answer: "Lower", emoji: "💰" },
-  { id: 10, question: "What is the name of Base's major upgrade?", options: ["Granite", "Diamond", "Bedrock", "Crystal"], answer: "Bedrock", emoji: "🪨" }
+  { id: 5, question: "What is the consensus mechanism?", options: ["Proof of Work", "Proof of Stake", "Proof of Authority", "Delegated PoS"], answer: "Proof of Stake", emoji: "🔒" }
 ];
 
 // Force mainnet contract address
 const CONTRACT = '0xEfb23c57042C21271ff19e1FB5CfFD1A49bD5f61';
 const ABI = parseAbi([
-  'function startQuizSession()',
-  'function submitBatchAnswers(string[10] memory userAnswers)',
-  'function lastQuizTime(address) view returns (uint256)',
-  'function learnToken() view returns (address)',
-  'function REWARD_AMOUNT() view returns (uint256)'
+  'function submitAnswer(uint256 _quizId, string memory _answer)',
+  'function quizzes(uint256) view returns (address creator, bytes32 answerHash, uint256 reward, string memory category, uint8 difficulty, uint256 completions, bool active)',
+  'function hasCompleted(address, uint256) view returns (bool)',
+  'function userScores(address) view returns (uint256)',
+  'function nextQuizId() view returns (uint256)',
+  'function learnToken() view returns (address)'
 ]);
 
 interface EthereumProvider {
@@ -40,7 +37,7 @@ export function BatchQuiz() {
   const { context } = useFarcaster();
   const [phase, setPhase] = useState<'welcome'|'starting'|'quiz'|'submitting'|'done'>('welcome');
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<string[]>(Array(10).fill(''));
+  const [answers, setAnswers] = useState<string[]>(Array(5).fill(''));
   const [time, setTime] = useState(120);
   const [countdown, setCountdown] = useState(5);
   const [error, setError] = useState('');
@@ -83,48 +80,90 @@ export function BatchQuiz() {
   }, [context, farcasterAddress]);
 
   const handleSubmit = useCallback(async () => {
-    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]) as [string, string, string, string, string, string, string, string, string, string];
+    const final = answers.map((a, i) => a || QUIZ_QUESTIONS[i].options[0]);
+    
     try {
       setError('');
       setPhase('submitting');
       
       if (provider && farcasterAddress) {
-        const data = encodeFunctionData({
-          abi: ABI,
-          functionName: 'submitBatchAnswers',
-          args: [final]
-        });
+        console.log('🎯 Submitting answers one by one to contract...');
+        console.log('User answers:', final);
+        console.log('Correct answers:', QUIZ_QUESTIONS.map(q => q.answer));
         
-        const txHash = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: farcasterAddress,
-            to: CONTRACT,
-            data: data,
-            gas: '0x493E0', // 300,000
-            value: '0x0'
-          }]
-        });
+        let correctCount = 0;
+        let successfulSubmissions = 0;
         
-        console.log('✅ Submit tx hash:', txHash);
-        console.log('🎯 Quiz answers:', final);
-        console.log('📊 Correct answers expected:', QUIZ_QUESTIONS.map(q => q.answer));
-        
-        // Doğru cevap sayısını hesapla
-        const correctCount = final.filter((answer, index) => answer === QUIZ_QUESTIONS[index].answer).length;
-        console.log(`🏆 Score: ${correctCount}/10 correct answers`);
-        
-        if (correctCount === 10) {
-          console.log('🎉 Perfect score! Should receive 100 LEARN tokens');
-        } else {
-          console.log('❌ Not perfect score, might not receive tokens');
+        // Submit each answer individually
+        for (let i = 0; i < final.length; i++) {
+          const answer = final[i];
+          const quizId = i + 1; // Quiz IDs are 1-indexed
+          
+          try {
+            console.log(`Submitting Quiz ${quizId}: "${answer}"`);
+            
+            const data = encodeFunctionData({
+              abi: ABI,
+              functionName: 'submitAnswer',
+              args: [BigInt(quizId), answer]
+            });
+            
+            const txHash = await provider.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: farcasterAddress,
+                to: CONTRACT,
+                data: data,
+                gas: '0x186A0', // 100,000 gas per transaction
+                value: '0x0'
+              }]
+            });
+            
+            console.log(`✅ Quiz ${quizId} submitted: ${txHash}`);
+            successfulSubmissions++;
+            
+            // Check if answer was correct
+            if (answer === QUIZ_QUESTIONS[i].answer) {
+              correctCount++;
+              console.log(`✅ Quiz ${quizId} correct!`);
+            } else {
+              console.log(`❌ Quiz ${quizId} incorrect. Expected: ${QUIZ_QUESTIONS[i].answer}, Got: ${answer}`);
+            }
+            
+            // Wait 1 second between transactions to avoid nonce issues
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+          } catch (error) {
+            console.error(`❌ Failed to submit Quiz ${quizId}:`, error);
+            
+            // If quiz doesn't exist or already completed, skip
+            if ((error as Error)?.message?.includes('Quiz not active')) {
+              console.log(`⚠️ Quiz ${quizId} not active on blockchain, skipping...`);
+              continue;
+            } else if ((error as Error)?.message?.includes('Already completed')) {
+              console.log(`⚠️ Quiz ${quizId} already completed, skipping...`);
+              continue;
+            }
+            
+            // For other errors, throw to stop the process
+            throw error;
+          }
         }
         
-        // Quiz completion event trigger et
+        console.log(`🏆 Final Score: ${correctCount}/${final.length} correct answers`);
+        console.log(`📤 Successful submissions: ${successfulSubmissions}/${final.length}`);
+        
+        if (correctCount > 0) {
+          console.log(`🎉 You should receive ${correctCount * 10} LEARN tokens!`);
+        }
+        
+        // Quiz completion event
         localStorage.setItem('quizCompleted', Date.now().toString());
+        localStorage.setItem('lastQuizScore', correctCount.toString());
         window.dispatchEvent(new Event('quizCompleted'));
         
-        setTimeout(() => setPhase('done'), 3000);
+        setTimeout(() => setPhase('done'), 2000);
+        
       } else {
         throw new Error('Wallet not connected');
       }
@@ -138,8 +177,8 @@ export function BatchQuiz() {
         errorMessage = 'Insufficient funds for gas';
       } else if ((e as { message?: string })?.message?.includes('nonce')) {
         errorMessage = 'Nonce too high, please reset wallet';
-      } else if ((e as { message?: string })?.message?.includes('reverted')) {
-        errorMessage = 'Quiz failed - Possible reasons: Already taken (7-day cooldown), Need perfect score (10/10), or Contract out of tokens';
+      } else if ((e as { message?: string })?.message?.includes('Quiz not active')) {
+        errorMessage = 'Quizzes not active on blockchain. Please contact admin to set up quizzes.';
       } else if ((e as { message?: string })?.message) {
         errorMessage = (e as { message: string }).message;
       }
@@ -180,48 +219,12 @@ export function BatchQuiz() {
   const handleStart = async () => {
     try {
       setError('');
-      setPhase('starting');
-      
-      if (provider && farcasterAddress) {
-        const data = encodeFunctionData({
-          abi: ABI,
-          functionName: 'startQuizSession',
-          args: []
-        });
-        
-        const txHash = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: farcasterAddress,
-            to: CONTRACT,
-            data: data,
-            gas: '0x249F0', // 150,000
-            value: '0x0'
-          }]
-        });
-        
-        console.log('Start tx hash:', txHash);
-        setTimeout(() => { setPhase('quiz'); setTime(120); }, 3000);
-      } else {
-        throw new Error('Wallet not connected');
-      }
+      console.log('🚀 Starting quiz directly - no pre-transaction needed');
+      setPhase('quiz'); 
+      setTime(120);
     } catch (e: unknown) {
       console.error('Start error:', e);
-      
-      let errorMessage = 'Failed to start quiz';
-      if ((e as { code?: number })?.code === 4001) {
-        errorMessage = 'Transaction rejected by user';
-      } else if ((e as { message?: string })?.message?.includes('insufficient funds')) {
-        errorMessage = 'Insufficient funds for gas';
-      } else if ((e as { message?: string })?.message?.includes('nonce')) {
-        errorMessage = 'Nonce too high, please reset wallet';
-      } else if ((e as { message?: string })?.message?.includes('reverted')) {
-        errorMessage = 'Quiz start failed - Likely 7-day cooldown period active. Check your last quiz date on Basescan.';
-      } else if ((e as { message?: string })?.message) {
-        errorMessage = (e as { message: string }).message;
-      }
-      
-      setError(errorMessage);
+      setError('Failed to start quiz');
       setPhase('welcome');
     }
   };
@@ -230,7 +233,7 @@ export function BatchQuiz() {
     const newA = [...answers];
     newA[currentQ] = opt;
     setAnswers(newA);
-    setTimeout(() => { if (currentQ < 9) setCurrentQ(currentQ + 1); }, 300);
+    setTimeout(() => { if (currentQ < 4) setCurrentQ(currentQ + 1); }, 300);
   };
 
   const correct = answers.filter((a, i) => a === QUIZ_QUESTIONS[i].answer).length;
@@ -253,7 +256,7 @@ export function BatchQuiz() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 flex justify-between bg-indigo-600/20 backdrop-blur-xl rounded-2xl p-4">
-          <span className="text-2xl font-bold">Q {currentQ + 1}/10</span>
+          <span className="text-2xl font-bold">Q {currentQ + 1}/5</span>
           <span className={`text-2xl font-bold ${time < 30 ? 'text-red-400 animate-pulse' : ''}`}>{fmtTime(time)}</span>
         </div>
         <AnimatePresence mode="wait">
@@ -271,7 +274,7 @@ export function BatchQuiz() {
             </div>
           </motion.div>
         </AnimatePresence>
-        {currentQ === 9 && (
+        {currentQ === 4 && (
           <button onClick={handleSubmit} className="w-full mt-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-xl rounded-2xl">
             Submit Quiz
           </button>
@@ -294,13 +297,13 @@ export function BatchQuiz() {
   if (phase === 'done') {
     return (
       <div className="max-w-4xl mx-auto text-center">
-        <div className={`bg-gradient-to-br ${correct === 10 ? 'from-green-600/10 border-green-500/30' : 'from-orange-600/10 border-orange-500/30'} backdrop-blur-xl rounded-3xl p-16 border`}>
-          <div className="text-9xl mb-6">{correct === 10 ? '🎉' : '😔'}</div>
-          <h2 className={`text-5xl font-bold mb-4 bg-gradient-to-r ${correct === 10 ? 'from-green-400 to-emerald-400' : 'from-orange-400 to-red-400'} bg-clip-text text-transparent`}>
-            {correct === 10 ? 'Perfect Score!' : 'Quiz Complete!'}
+        <div className={`bg-gradient-to-br ${correct === 5 ? 'from-green-600/10 border-green-500/30' : 'from-orange-600/10 border-orange-500/30'} backdrop-blur-xl rounded-3xl p-16 border`}>
+          <div className="text-9xl mb-6">{correct === 5 ? '🎉' : '😔'}</div>
+          <h2 className={`text-5xl font-bold mb-4 bg-gradient-to-r ${correct === 5 ? 'from-green-400 to-emerald-400' : 'from-orange-400 to-red-400'} bg-clip-text text-transparent`}>
+            {correct === 5 ? 'Perfect Score!' : 'Quiz Complete!'}
           </h2>
-          <p className="text-3xl text-white mb-8">{correct}/10 Correct</p>
-          {correct === 10 && <p className="text-2xl text-green-300 mb-6">100 LEARN earned!</p>}
+          <p className="text-3xl text-white mb-8">{correct}/5 Correct</p>
+          {correct > 0 && <p className="text-2xl text-green-300 mb-6">{correct * 10} LEARN earned!</p>}
           <p className="text-xl text-gray-300">Redirecting in {countdown}s...</p>
         </div>
       </div>
@@ -313,12 +316,12 @@ export function BatchQuiz() {
         <div className="text-center mb-8 text-6xl">🎯</div>
         <h2 className="text-5xl font-bold mb-6 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Base Blockchain Challenge</h2>
         <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-2xl p-8 mb-8">
-          <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300">Win 100 LEARN!</h3>
+          <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300">Earn LEARN Tokens!</h3>
           <div className="grid md:grid-cols-2 gap-4 font-semibold">
-            <div className="bg-black/30 rounded-lg p-4">📝 10 Questions</div>
+            <div className="bg-black/30 rounded-lg p-4">📝 5 Questions</div>
             <div className="bg-black/30 rounded-lg p-4">⏱️ 2 Minutes</div>
-            <div className="bg-black/30 rounded-lg p-4">📅 Weekly</div>
-            <div className="bg-black/30 rounded-lg p-4">💯 Perfect Score</div>
+            <div className="bg-black/30 rounded-lg p-4">🪙 10 LEARN per correct</div>
+            <div className="bg-black/30 rounded-lg p-4">🚀 Max 50 LEARN</div>
           </div>
         </div>
         {error && <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6"><p className="text-red-300">{error}</p></div>}
