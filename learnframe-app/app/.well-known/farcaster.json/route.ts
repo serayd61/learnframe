@@ -7,6 +7,15 @@ export async function GET() {
       payload: "eyJkb21haW4iOiJsZWFybmZyYW1lLnZlcmNlbC5hcHAifQ",
       signature: "MHgxNDgxMTU1M2YxYzQyODk1NDlkNmY5MDNjNzhmYTFiODZhYjhjNmIyZDBlNjMyNWI2YzIwNzZhZTRkYjJlYjE5NmUyYWMzNTc1MTEyNTUyMjhmMDg0YTJkMWRiMzk1NmMyZTgzYmRkMzdlMmM1YmU4NDMyNGNiMTkyY2YzZDg2YjFi"
     },
+    // Root-level fields for Base Build
+    name: "LearnFrame",
+    iconUrl: "https://learnframe.vercel.app/icon.png",
+    homeUrl: "https://learnframe.vercel.app",
+    splashImageUrl: "https://learnframe.vercel.app/icon.png",
+    splashBackgroundColor: "#1e293b",
+    primaryCategory: "education",
+    tags: ["blockchain", "education", "base", "web3", "quiz"],
+    // MiniApp object for Farcaster
     miniApp: {
       name: "LearnFrame",
       description: "Learn blockchain knowledge, earn LEARN tokens on Base with advanced quiz system",
