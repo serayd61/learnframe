@@ -8,34 +8,29 @@ export async function GET() {
       iconUrl: "https://learnframe.vercel.app/icon.png",
       homeUrl: "https://learnframe.vercel.app",
       imageUrl: "https://learnframe.vercel.app/api/preview",
-      buttonTitle: "Start Learning 🎓",
+      buttonTitle: "Start Learning",
       splashImageUrl: "https://learnframe.vercel.app/icon.png",
       splashBackgroundColor: "#1e293b",
-      webhookUrl: "https://learnframe.vercel.app/api/webhook",
       subtitle: "Learn Blockchain, Earn Tokens",
       description: "Master blockchain knowledge and earn LEARN tokens on Base. Interactive quizzes with advanced scoring, real rewards, and global leaderboards. Learn about Web3, DeFi, smart contracts, and more while earning on-chain rewards.",
       primaryCategory: "education",
-      heroImageUrl: "https://learnframe.vercel.app/api/preview",
       screenshotUrls: [
         "https://learnframe.vercel.app/api/preview"
       ],
+      heroImageUrl: "https://learnframe.vercel.app/api/preview",
       tags: [
         "blockchain",
-        "education",
-        "base",
-        "web3",
-        "quiz"
+        "education"
       ],
-      tagline: "Learn Blockchain, Earn Real Tokens on Base",
-      ogTitle: "LearnFrame - Learn & Earn on Base",
-      ogImageUrl: "https://learnframe.vercel.app/api/preview",
-      ogDescription: "Master blockchain knowledge and earn LEARN tokens through interactive quizzes. Join thousands learning Web3 on Base.",
-      castShareUrl: "https://learnframe.vercel.app"
+      tagline: "Earn Real Tokens on Base",
+      ogTitle: "LearnFrame",
+      ogDescription: "Master blockchain knowledge and earn LEARN tokens through interactive quizzes.",
+      ogImageUrl: "https://learnframe.vercel.app/api/preview"
     },
     accountAssociation: {
       header: "eyJmaWQiOjIwODY0NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGYwZTBlNTQwMjgyOUMyNzI3ZDhiNWEzZGY5MmI0NEQzRDM1N0VlQTcifQ",
-      payload: "eyJkb21haW4iOiJodHRwczovL2xlYXJuZnJhbWUudmVyY2VsLmFwcC8ifQ",
-      signature: "cGVq3rBzVNLdoH7uXQlJ8xIjvm1hFUsZkehL3T4fwVwxu26lOpv9ojQv2b/6Om+W22KwO0f+AiGbQzvDeaYgehs="
+      payload: "eyJkb21haW4iOiJodHRwczovL2xlYXJuZnJhbWUudmVyY2VsLmFwcCJ9",
+      signature: "+PnHQuhlq61HAPXqqNh5qbiBtDtyMsnRA//T5cr3kpwoRgXZX9dPXz/HW5syDS7MljXcnpYtVlVLensPpKkQARs="
     },
     miniApp: {
       name: "LearnFrame",
@@ -47,13 +42,7 @@ export async function GET() {
       splashImageUrl: "https://learnframe.vercel.app/icon.png",
       splashBackgroundColor: "#1e293b",
       primaryCategory: "education",
-      tags: [
-        "blockchain",
-        "education",
-        "base",
-        "web3",
-        "quiz"
-      ],
+      tags: ["blockchain", "education", "base", "web3", "quiz"],
       version: "1.2.0",
       developer: {
         name: "LearnFrame Team",
@@ -64,15 +53,11 @@ export async function GET() {
         "wallet.send",
         "notifications.push"
       ],
-      supportedChains: [
-        "base"
-      ],
+      supportedChains: ["base"],
       minSdkVersion: "0.1.0"
     },
     baseBuilder: {
-      allowedAddresses: [
-        "0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"
-      ]
+      allowedAddresses: ["0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"]
     }
   }, {
     headers: {
