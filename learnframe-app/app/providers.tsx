@@ -1,53 +1,50 @@
 'use client';
 
-import '@coinbase/onchainkit/styles.css';
-import '@rainbow-me/rainbowkit/styles.css';
-import { OnchainKitProvider } from '@coinbase/onchainkit';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
-import { base } from 'viem/chains';
 import { WagmiProvider } from 'wagmi';
-import { wagmiConfig } from './wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { base } from 'wagmi/chains';
+import { FarcasterProvider } from '@/components/FarcasterProvider';
+import '@rainbow-me/rainbowkit/styles.css';
 import { useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
+// Hybrid config: RainbowKit for external wallets + Farcaster integration
+const config = getDefaultConfig({
+  appName: 'LearnFrame',
+  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
+  chains: [base],
+  ssr: true,
+});
+
 const queryClient = new QueryClient();
 
-export function Providers(props: { children: ReactNode }) {
-  // Initialize Farcaster SDK and call ready when loaded
+export function Providers({ children }: { children: React.ReactNode }) {
+  // Initialize Farcaster SDK
   useEffect(() => {
     const initSDK = async () => {
       try {
-        // Check if we're in a Farcaster context
         const context = await sdk.context;
         console.log('Farcaster context:', context);
-        
-        // Signal that the app is ready to be displayed
         sdk.actions.ready();
-        console.log('✅ Farcaster SDK ready called');
+        console.log('✅ Farcaster SDK ready');
       } catch (error) {
-        console.log('Not in Farcaster context or error:', error);
-        // Still call ready to hide splash screen
+        console.log('Not in Farcaster context:', error);
         sdk.actions.ready();
       }
     };
-
     initSDK();
   }, []);
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <OnchainKitProvider
-          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-          chain={base}
-        >
-          <RainbowKitProvider modalSize="compact">
-            {props.children}
+    <FarcasterProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            {children}
           </RainbowKitProvider>
-        </OnchainKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </FarcasterProvider>
   );
 }
