@@ -1,4 +1,5 @@
 import { AdminPanel } from '@/components/AdminPanel';
+import { EmergencyQuizDeployer } from '@/components/EmergencyQuizDeployer';
 import { Navigation } from '@/components/Navigation';
 
 export default function AdminPage() {
@@ -14,7 +15,10 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <AdminPanel />
+        <div className="space-y-8">
+          <EmergencyQuizDeployer />
+          <AdminPanel />
+        </div>
         
         <div className="mt-8 text-center text-sm text-slate-500">
           <p>This panel is for debugging contract issues.</p>
