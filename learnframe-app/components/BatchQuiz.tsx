@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
 import { encodeFunctionData, parseAbi } from 'viem';
+import { ethers } from 'ethers';
 
 // Extended quiz questions - 10 total
 const QUIZ_QUESTIONS = [
@@ -248,7 +249,35 @@ export function BatchQuiz() {
   const handleStart = async () => {
     try {
       setError('');
-      console.log('🚀 Starting quiz directly - no pre-transaction needed');
+      
+      // Quick quiz availability check before starting
+      if (provider && farcasterAddress) {
+        try {
+          console.log('🔍 Quick check: Verifying quiz availability...');
+          const checkProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+          const checkContract = new ethers.Contract(
+            CONTRACT,
+            ABI,
+            checkProvider
+          );
+          
+          const nextQuizId = await checkContract.nextQuizId();
+          const availableQuizzes = parseInt(nextQuizId.toString()) - 1;
+          
+          if (availableQuizzes < 10) {
+            setError(`❌ Only ${availableQuizzes}/10 quizzes available on blockchain. Please wait for admin to deploy remaining quizzes.`);
+            return;
+          }
+          
+          console.log(`✅ ${availableQuizzes} quizzes confirmed on blockchain`);
+        } catch (error) {
+          console.error('Quiz availability check failed:', error);
+          setError('❌ Unable to verify quiz availability. Please try again or contact admin.');
+          return;
+        }
+      }
+      
+      console.log('🚀 Starting quiz - all systems ready');
       setPhase('quiz'); 
       setTime(120);
     } catch (e: unknown) {

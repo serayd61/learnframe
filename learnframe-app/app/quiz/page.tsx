@@ -2,6 +2,7 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { BatchQuiz } from '@/components/BatchQuiz';
+import { QuizStatusChecker } from '@/components/QuizStatusChecker';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
@@ -158,6 +159,7 @@ export default function QuizPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
+            <QuizStatusChecker />
             <BatchQuiz />
           </motion.div>
         )}
