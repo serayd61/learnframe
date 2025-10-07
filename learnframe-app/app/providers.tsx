@@ -7,7 +7,7 @@ import { base } from 'wagmi/chains';
 import { FarcasterProvider } from '@/components/FarcasterProvider';
 import '@rainbow-me/rainbowkit/styles.css';
 import { useEffect } from 'react';
-import sdk from '@farcaster/frame-sdk';
+import { sdk } from '@farcaster/miniapp-sdk';
 
 // Hybrid config: RainbowKit for external wallets + Farcaster integration
 const config = getDefaultConfig({
@@ -20,17 +20,15 @@ const config = getDefaultConfig({
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Initialize Farcaster SDK
+  // Initialize Farcaster Mini App SDK
   useEffect(() => {
     const initSDK = async () => {
       try {
-        const context = await sdk.context;
-        console.log('Farcaster context:', context);
-        sdk.actions.ready();
-        console.log('✅ Farcaster SDK ready');
+        // Call ready to hide splash screen
+        await sdk.actions.ready();
+        console.log('✅ Farcaster Mini App SDK ready');
       } catch (error) {
-        console.log('Not in Farcaster context:', error);
-        sdk.actions.ready();
+        console.log('SDK error:', error);
       }
     };
     initSDK();
