@@ -36,6 +36,9 @@ export async function GET() {
       ],
       supportedChains: ["base"],
       minSdkVersion: "0.1.0"
+    },
+    baseBuilder: {
+      allowedAddresses: ["0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"]
     }
   }, {
     headers: {
