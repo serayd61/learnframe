@@ -47,7 +47,13 @@ export async function GET() {
       splashImageUrl: "https://learnframe.vercel.app/icon.png",
       splashBackgroundColor: "#1e293b",
       primaryCategory: "education",
-      tags: ["blockchain", "education", "base", "web3", "quiz"],
+      tags: [
+        "blockchain",
+        "education",
+        "base",
+        "web3",
+        "quiz"
+      ],
       version: "1.2.0",
       developer: {
         name: "LearnFrame Team",
@@ -58,11 +64,15 @@ export async function GET() {
         "wallet.send",
         "notifications.push"
       ],
-      supportedChains: ["base"],
+      supportedChains: [
+        "base"
+      ],
       minSdkVersion: "0.1.0"
     },
     baseBuilder: {
-      allowedAddresses: ["0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"]
+      allowedAddresses: [
+        "0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"
+      ]
     }
   }, {
     headers: {
