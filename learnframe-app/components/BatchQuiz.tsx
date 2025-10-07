@@ -7,13 +7,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFarcaster } from './FarcasterProvider';
 import { encodeFunctionData, parseAbi } from 'viem';
 
-// Quiz questions matching the contract setup (first 5 are in contract)
+// Extended quiz questions - 10 total
 const QUIZ_QUESTIONS = [
   { id: 1, question: "What is the native token of Base?", options: ["ETH", "BASE", "USDC", "BTC"], answer: "ETH", emoji: "💎" },
   { id: 2, question: "Which company developed Base?", options: ["Binance", "Coinbase", "Kraken", "OpenSea"], answer: "Coinbase", emoji: "🏢" },
   { id: 3, question: "What is Base built on?", options: ["Polygon", "Arbitrum", "Optimism", "Avalanche"], answer: "Optimism", emoji: "🔧" },
   { id: 4, question: "Is Base EVM compatible?", options: ["Yes", "No", "Partially", "Only for NFTs"], answer: "Yes", emoji: "✅" },
-  { id: 5, question: "What is the consensus mechanism?", options: ["Proof of Work", "Proof of Stake", "Proof of Authority", "Delegated PoS"], answer: "Proof of Stake", emoji: "🔒" }
+  { id: 5, question: "What is the consensus mechanism?", options: ["Proof of Work", "Proof of Stake", "Proof of Authority", "Delegated PoS"], answer: "Proof of Stake", emoji: "🔒" },
+  { id: 6, question: "What type of network is Base?", options: ["Layer1", "Layer2", "Layer3", "Sidechain"], answer: "Layer2", emoji: "🔄" },
+  { id: 7, question: "What is Base's underlying blockchain?", options: ["Bitcoin", "Solana", "Ethereum", "Cardano"], answer: "Ethereum", emoji: "⛓️" },
+  { id: 8, question: "What year was Base launched?", options: ["2021", "2022", "2023", "2024"], answer: "2023", emoji: "📅" },
+  { id: 9, question: "What type of rollup is Base?", options: ["Optimistic", "ZK", "Hybrid", "Plasma"], answer: "Optimistic", emoji: "🚀" },
+  { id: 10, question: "Are gas fees on Base higher or lower than Ethereum?", options: ["Higher", "Lower", "Same", "Variable"], answer: "Lower", emoji: "💰" }
 ];
 
 // Force mainnet contract address
@@ -37,7 +42,7 @@ export function BatchQuiz() {
   const { context } = useFarcaster();
   const [phase, setPhase] = useState<'welcome'|'starting'|'quiz'|'submitting'|'done'>('welcome');
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<string[]>(Array(5).fill(''));
+  const [answers, setAnswers] = useState<string[]>(Array(10).fill(''));
   const [time, setTime] = useState(120);
   const [countdown, setCountdown] = useState(5);
   const [error, setError] = useState('');
@@ -87,20 +92,23 @@ export function BatchQuiz() {
       setPhase('submitting');
       
       if (provider && farcasterAddress) {
-        console.log('🎯 Submitting answers one by one to contract...');
+        console.log('🎯 Submitting answers with new scoring system...');
         console.log('User answers:', final);
         console.log('Correct answers:', QUIZ_QUESTIONS.map(q => q.answer));
         
         let correctCount = 0;
+        let wrongCount = 0;
         let successfulSubmissions = 0;
+        let firstCorrectBonus = false;
         
         // Submit each answer individually
         for (let i = 0; i < final.length; i++) {
           const answer = final[i];
           const quizId = i + 1; // Quiz IDs are 1-indexed
+          const isCorrect = answer === QUIZ_QUESTIONS[i].answer;
           
           try {
-            console.log(`Submitting Quiz ${quizId}: "${answer}"`);
+            console.log(`Submitting Quiz ${quizId}: "${answer}" (${isCorrect ? 'CORRECT' : 'WRONG'})`);
             
             const data = encodeFunctionData({
               abi: ABI,
@@ -122,12 +130,17 @@ export function BatchQuiz() {
             console.log(`✅ Quiz ${quizId} submitted: ${txHash}`);
             successfulSubmissions++;
             
-            // Check if answer was correct
-            if (answer === QUIZ_QUESTIONS[i].answer) {
+            // Track correct/wrong answers
+            if (isCorrect) {
               correctCount++;
-              console.log(`✅ Quiz ${quizId} correct!`);
+              if (correctCount === 1) {
+                firstCorrectBonus = true;
+                console.log(`🎁 First correct answer bonus activated!`);
+              }
+              console.log(`✅ Quiz ${quizId} correct! Total correct: ${correctCount}`);
             } else {
-              console.log(`❌ Quiz ${quizId} incorrect. Expected: ${QUIZ_QUESTIONS[i].answer}, Got: ${answer}`);
+              wrongCount++;
+              console.log(`❌ Quiz ${quizId} incorrect. Expected: ${QUIZ_QUESTIONS[i].answer}, Got: ${answer}. Total wrong: ${wrongCount}`);
             }
             
             // Wait 1 second between transactions to avoid nonce issues
@@ -150,16 +163,32 @@ export function BatchQuiz() {
           }
         }
         
-        console.log(`🏆 Final Score: ${correctCount}/${final.length} correct answers`);
-        console.log(`📤 Successful submissions: ${successfulSubmissions}/${final.length}`);
-        
-        if (correctCount > 0) {
-          console.log(`🎉 You should receive ${correctCount * 10} LEARN tokens!`);
+        // Calculate final score with new system
+        // Base: 1000 LEARN
+        // -100 LEARN per wrong answer
+        // +100 LEARN bonus for first correct answer
+        let finalScore = 1000 - (wrongCount * 100);
+        if (firstCorrectBonus) {
+          finalScore += 100;
         }
+        
+        // Minimum score is 0
+        finalScore = Math.max(0, finalScore);
+        
+        console.log(`\n🏆 SCORING BREAKDOWN:`);
+        console.log(`Base score: 1000 LEARN`);
+        console.log(`Correct answers: ${correctCount}/10`);
+        console.log(`Wrong answers: ${wrongCount}/10 (-${wrongCount * 100} LEARN)`);
+        console.log(`First correct bonus: ${firstCorrectBonus ? '+100 LEARN' : 'Not earned'}`);
+        console.log(`FINAL SCORE: ${finalScore} LEARN`);
+        console.log(`📤 Successful submissions: ${successfulSubmissions}/10`);
         
         // Quiz completion event
         localStorage.setItem('quizCompleted', Date.now().toString());
         localStorage.setItem('lastQuizScore', correctCount.toString());
+        localStorage.setItem('lastQuizFinalScore', finalScore.toString());
+        localStorage.setItem('lastQuizWrongCount', wrongCount.toString());
+        localStorage.setItem('lastQuizFirstBonus', firstCorrectBonus.toString());
         window.dispatchEvent(new Event('quizCompleted'));
         
         setTimeout(() => setPhase('done'), 2000);
@@ -233,7 +262,7 @@ export function BatchQuiz() {
     const newA = [...answers];
     newA[currentQ] = opt;
     setAnswers(newA);
-    setTimeout(() => { if (currentQ < 4) setCurrentQ(currentQ + 1); }, 300);
+    setTimeout(() => { if (currentQ < 9) setCurrentQ(currentQ + 1); }, 300);
   };
 
   const correct = answers.filter((a, i) => a === QUIZ_QUESTIONS[i].answer).length;
@@ -256,7 +285,7 @@ export function BatchQuiz() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 flex justify-between bg-indigo-600/20 backdrop-blur-xl rounded-2xl p-4">
-          <span className="text-2xl font-bold">Q {currentQ + 1}/5</span>
+          <span className="text-2xl font-bold">Q {currentQ + 1}/10</span>
           <span className={`text-2xl font-bold ${time < 30 ? 'text-red-400 animate-pulse' : ''}`}>{fmtTime(time)}</span>
         </div>
         <AnimatePresence mode="wait">
@@ -274,7 +303,7 @@ export function BatchQuiz() {
             </div>
           </motion.div>
         </AnimatePresence>
-        {currentQ === 4 && (
+        {currentQ === 9 && (
           <button onClick={handleSubmit} className="w-full mt-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-xl rounded-2xl">
             Submit Quiz
           </button>
@@ -295,15 +324,37 @@ export function BatchQuiz() {
   }
 
   if (phase === 'done') {
+    // Get scoring data from localStorage
+    const finalScore = parseInt(localStorage.getItem('lastQuizFinalScore') || '0');
+    const wrongCount = parseInt(localStorage.getItem('lastQuizWrongCount') || '0');
+    const firstBonus = localStorage.getItem('lastQuizFirstBonus') === 'true';
+    
+    const isPerfect = correct === 10;
+    const isGood = finalScore >= 600;
+    
     return (
       <div className="max-w-4xl mx-auto text-center">
-        <div className={`bg-gradient-to-br ${correct === 5 ? 'from-green-600/10 border-green-500/30' : 'from-orange-600/10 border-orange-500/30'} backdrop-blur-xl rounded-3xl p-16 border`}>
-          <div className="text-9xl mb-6">{correct === 5 ? '🎉' : '😔'}</div>
-          <h2 className={`text-5xl font-bold mb-4 bg-gradient-to-r ${correct === 5 ? 'from-green-400 to-emerald-400' : 'from-orange-400 to-red-400'} bg-clip-text text-transparent`}>
-            {correct === 5 ? 'Perfect Score!' : 'Quiz Complete!'}
+        <div className={`bg-gradient-to-br ${isPerfect ? 'from-green-600/10 border-green-500/30' : isGood ? 'from-blue-600/10 border-blue-500/30' : 'from-orange-600/10 border-orange-500/30'} backdrop-blur-xl rounded-3xl p-16 border`}>
+          <div className="text-9xl mb-6">{isPerfect ? '🎉' : isGood ? '🎯' : '😔'}</div>
+          <h2 className={`text-5xl font-bold mb-4 bg-gradient-to-r ${isPerfect ? 'from-green-400 to-emerald-400' : isGood ? 'from-blue-400 to-cyan-400' : 'from-orange-400 to-red-400'} bg-clip-text text-transparent`}>
+            {isPerfect ? 'Perfect Score!' : isGood ? 'Great Job!' : 'Quiz Complete!'}
           </h2>
-          <p className="text-3xl text-white mb-8">{correct}/5 Correct</p>
-          {correct > 0 && <p className="text-2xl text-green-300 mb-6">{correct * 10} LEARN earned!</p>}
+          
+          <div className="space-y-4 mb-8">
+            <p className="text-3xl text-white">{correct}/10 Correct</p>
+            
+            <div className="bg-black/30 rounded-lg p-6 space-y-2">
+              <h3 className="text-xl font-bold text-yellow-300">📊 Score Breakdown</h3>
+              <div className="text-left space-y-1">
+                <p className="text-green-400">Base Score: 1000 LEARN</p>
+                <p className="text-red-400">Wrong Answers: -{wrongCount} × 100 = -{wrongCount * 100} LEARN</p>
+                {firstBonus && <p className="text-purple-400">First Correct Bonus: +100 LEARN</p>}
+                <hr className="border-slate-600" />
+                <p className="text-2xl font-bold text-yellow-300">Final Score: {finalScore} LEARN</p>
+              </div>
+            </div>
+          </div>
+          
           <p className="text-xl text-gray-300">Redirecting in {countdown}s...</p>
         </div>
       </div>
@@ -316,12 +367,15 @@ export function BatchQuiz() {
         <div className="text-center mb-8 text-6xl">🎯</div>
         <h2 className="text-5xl font-bold mb-6 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Base Blockchain Challenge</h2>
         <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-2xl p-8 mb-8">
-          <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300">Earn LEARN Tokens!</h3>
+          <h3 className="text-3xl font-bold mb-4 text-center text-yellow-300">New Scoring System!</h3>
           <div className="grid md:grid-cols-2 gap-4 font-semibold">
-            <div className="bg-black/30 rounded-lg p-4">📝 5 Questions</div>
+            <div className="bg-black/30 rounded-lg p-4">📝 10 Questions</div>
             <div className="bg-black/30 rounded-lg p-4">⏱️ 2 Minutes</div>
-            <div className="bg-black/30 rounded-lg p-4">🪙 10 LEARN per correct</div>
-            <div className="bg-black/30 rounded-lg p-4">🚀 Max 50 LEARN</div>
+            <div className="bg-black/30 rounded-lg p-4">🎯 1000 Base LEARN</div>
+            <div className="bg-black/30 rounded-lg p-4">❌ -100 per wrong</div>
+          </div>
+          <div className="mt-4 bg-purple-500/20 border border-purple-500 rounded-lg p-4">
+            <p className="text-purple-300 font-bold">🎁 Bonus: +100 LEARN for first correct answer!</p>
           </div>
         </div>
         {error && <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6"><p className="text-red-300">{error}</p></div>}
