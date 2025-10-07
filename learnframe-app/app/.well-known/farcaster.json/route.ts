@@ -16,6 +16,26 @@ export async function GET() {
       buttonTitle: "Start Learning",
       splashImageUrl: "https://learnframe.vercel.app/api/preview",
       splashBackgroundColor: "#1e293b"
+    },
+    miniApp: {
+      name: "LearnFrame",
+      description: "Learn blockchain knowledge, earn LEARN tokens on Base with advanced quiz system",
+      icon: "https://learnframe.vercel.app/icon.svg",
+      url: "https://learnframe.vercel.app",
+      primaryCategory: "education",
+      tags: ["blockchain", "education", "base", "web3", "quiz"],
+      version: "1.2.0",
+      developer: {
+        name: "LearnFrame Team",
+        url: "https://learnframe.vercel.app"
+      },
+      permissions: [
+        "wallet.connect",
+        "wallet.send",
+        "notifications.push"
+      ],
+      supportedChains: ["base"],
+      minSdkVersion: "0.1.0"
     }
   }, {
     headers: {
