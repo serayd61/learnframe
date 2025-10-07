@@ -56,7 +56,7 @@ export function BatchQuiz() {
     const initFarcaster = async () => {
       if (context && !farcasterAddress) {
         try {
-          const sdk = (await import('@farcaster/miniapp-sdk')).then(m => m.sdk);
+          const sdk = (await import("@farcaster/miniapp-sdk")).sdk;
           const ethProvider = sdk.wallet.ethProvider;
           
           // Chain kontrolü

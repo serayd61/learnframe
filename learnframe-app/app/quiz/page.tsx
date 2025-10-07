@@ -30,7 +30,7 @@ export default function QuizPage() {
     const connectFarcasterWallet = async () => {
       if (context && !farcasterAddress) {
         try {
-          const sdk = (await import('@farcaster/frame-sdk')).then(m => m.sdk);
+          const sdk = (await import("@farcaster/miniapp-sdk")).sdk;
           const provider = sdk.wallet.ethProvider;
           const accounts = await provider.request({ 
             method: 'eth_requestAccounts' 
