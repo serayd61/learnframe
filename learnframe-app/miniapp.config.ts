@@ -1,10 +1,11 @@
-import { MiniAppConfig } from '@farcaster/miniapp-sdk';
+import MiniAppConfig from '@farcaster/miniapp-sdk';
 
-export const miniAppConfig: MiniAppConfig = {
+export const miniAppConfig = {
   name: 'LearnFrame',
   description: 'Learn blockchain, earn LEARN tokens on Base',
   icon: '/icon.png',
-  version: '1.0.0',
+  url: process.env.NEXT_PUBLIC_APP_URL || 'https://learnframe.vercel.app',
+  version: '1.2.0',
   permissions: [
     'wallet.connect',
     'wallet.send',
