@@ -158,6 +158,22 @@ export const metadata: Metadata = {
     ],
   },
   other: {
+    // Farcaster MiniApp Embed - CRITICAL for Base Build
+    'fc:miniapp': JSON.stringify({
+      version: "1",
+      imageUrl: "https://learnframe.vercel.app/api/preview",
+      button: {
+        title: "Start Learning 🎓",
+        action: {
+          type: "launch_frame",
+          name: "LearnFrame",
+          url: "https://learnframe.vercel.app",
+          splashImageUrl: "https://learnframe.vercel.app/icon.svg",
+          splashBackgroundColor: "#1e293b"
+        }
+      }
+    }),
+    
     // Farcaster Frame Meta Tags
     'fc:frame': 'vNext',
     'fc:frame:image': 'https://learnframe.vercel.app/api/preview',
@@ -175,30 +191,7 @@ export const metadata: Metadata = {
     'miniapp:category': 'education',
     'miniapp:chain': 'base',
     'miniapp:permissions': 'wallet.connect,user.profile,notifications.push',
-    
-    // Progressive Web App
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'LearnFrame',
-    
-    // Windows/IE
-    'msapplication-TileColor': '#7C3AED',
-    'msapplication-TileImage': '/icon.png',
-    'msapplication-config': '/browserconfig.xml',
-    'msapplication-navbutton-color': '#7C3AED',
-    
-    // Theme and Design
-    'theme-color': '#7C3AED',
-    'color-scheme': 'dark light',
-    
-    // Performance Hints
-    'dns-prefetch': 'true',
-    'preconnect': 'https://fonts.googleapis.com',
-    
-    // Security
-    'referrer': 'strict-origin-when-cross-origin',
-  },
+  }
 };
 
 export default function RootLayout({
