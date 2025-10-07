@@ -7,21 +7,15 @@ export async function GET() {
       payload: "eyJkb21haW4iOiJsZWFybmZyYW1lLnZlcmNlbC5hcHAifQ",
       signature: "MHgxNDgxMTU1M2YxYzQyODk1NDlkNmY5MDNjNzhmYTFiODZhYjhjNmIyZDBlNjMyNWI2YzIwNzZhZTRkYjJlYjE5NmUyYWMzNTc1MTEyNTUyMjhmMDg0YTJkMWRiMzk1NmMyZTgzYmRkMzdlMmM1YmU4NDMyNGNiMTkyY2YzZDg2YjFi"
     },
-    frame: {
-      version: "1",
-      name: "LearnFrame",
-      iconUrl: "https://learnframe.vercel.app/icon.png",
-      homeUrl: "https://learnframe.vercel.app",
-      imageUrl: "https://learnframe.vercel.app/api/preview",
-      buttonTitle: "Start Learning",
-      splashImageUrl: "https://learnframe.vercel.app/icon.png",
-      splashBackgroundColor: "#1e293b"
-    },
     miniApp: {
       name: "LearnFrame",
       description: "Learn blockchain knowledge, earn LEARN tokens on Base with advanced quiz system",
       icon: "https://learnframe.vercel.app/icon.png",
+      iconUrl: "https://learnframe.vercel.app/icon.png",
       url: "https://learnframe.vercel.app",
+      homeUrl: "https://learnframe.vercel.app",
+      splashImageUrl: "https://learnframe.vercel.app/icon.png",
+      splashBackgroundColor: "#1e293b",
       primaryCategory: "education",
       tags: ["blockchain", "education", "base", "web3", "quiz"],
       version: "1.2.0",
