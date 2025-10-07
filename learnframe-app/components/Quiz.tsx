@@ -74,6 +74,22 @@ export function Quiz() {
         signer
       );
 
+      // First check if quiz exists and is active
+      try {
+        const quiz = await contract.quizzes(BigInt(currentQuiz + 1));
+        if (!quiz.active) {
+          setFeedback('❌ This quiz is not active on the blockchain yet. Please contact the admin.');
+          setIsSubmitting(false);
+          return;
+        }
+        console.log('Quiz found:', { active: quiz.active, reward: quiz.reward.toString(), category: quiz.category });
+      } catch (error) {
+        console.error('Quiz check error:', error);
+        setFeedback('❌ Quiz not found on blockchain. Please contact the admin.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const tx = await contract.submitAnswer(BigInt(currentQuiz + 1), userAnswer);
       setFeedback('⏳ Transaction submitted... waiting for confirmation');
       
@@ -85,7 +101,21 @@ export function Quiz() {
 
     } catch (error) {
       console.error('❌ Transaction error:', error);
-      setFeedback('❌ Error submitting answer: ' + (error as Error).message);
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Quiz not active')) {
+          errorMessage = 'Quiz is not active on blockchain';
+        } else if (error.message.includes('Already completed')) {
+          errorMessage = 'You have already completed this quiz';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient gas fees';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setFeedback('❌ Transaction failed: ' + errorMessage);
       setIsSubmitting(false);
     }
   };

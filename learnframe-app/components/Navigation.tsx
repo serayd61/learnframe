@@ -22,6 +22,9 @@ export function Navigation() {
             <Link href="/leaderboard" className="hover:text-blue-400">
               Leaderboard
             </Link>
+            <Link href="/admin" className="hover:text-orange-400 text-sm">
+              🔧 Admin
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-4">
