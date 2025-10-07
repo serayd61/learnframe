@@ -6,7 +6,7 @@ export default function SDKReady() {
   useEffect(() => {
     const callReady = async () => {
       try {
-        const { default: sdk } = await import('@farcaster/frame-sdk');
+        const { sdk } = await import('@farcaster/miniapp-sdk');
         sdk.actions.ready();
         console.log('✅ SDK ready() called successfully');
       } catch {
