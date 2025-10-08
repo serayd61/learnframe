@@ -2,45 +2,26 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   return Response.json({
+    accountAssociation: {
+      header: "eyJmaWQiOjIwODY0NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGM1NjhlQTVjY0M2OEVkMDE5NDNFODQ3YWVDMTY2MTY3NTA2NDhENjUifQ",
+      payload: "eyJkb21haW4iOiJsZWFybmZyYW1lLnZlcmNlbC5hcHAifQ",
+      signature: "MHgxNDgxMTU1M2YxYzQyODk1NDlkNmY5MDNjNzhmYTFiODZhYjhjNmIyZDBlNjMyNWI2YzIwNzZhZTRkYjJlYjE5NmUyYWMzNTc1MTEyNTUyMjhmMDg0YTJkMWRiMzk1NmMyZTgzYmRkMzdlMmM1YmU4NDMyNGNiMTkyY2YzZDg2YjFi"
+    },
     frame: {
-      name: "LearnFrame",
       version: "1",
-      iconUrl: "https://learnframe.vercel.app/icon.png",
+      name: "LearnFrame",
+      iconUrl: "https://learnframe.vercel.app/icon.svg",
       homeUrl: "https://learnframe.vercel.app",
       imageUrl: "https://learnframe.vercel.app/api/preview",
       buttonTitle: "Start Learning",
-      splashImageUrl: "https://learnframe.vercel.app/icon.png",
-      splashBackgroundColor: "#1e293b",
-      subtitle: "Learn Blockchain, Earn Tokens",
-      description: "Master blockchain knowledge and earn LEARN tokens on Base. Interactive quizzes with advanced scoring, real rewards, and global leaderboards. Learn about Web3, DeFi, smart contracts, and more while earning on-chain rewards.",
-      primaryCategory: "education",
-      screenshotUrls: [
-        "https://learnframe.vercel.app/api/preview"
-      ],
-      heroImageUrl: "https://learnframe.vercel.app/api/preview",
-      tags: [
-        "blockchain",
-        "education"
-      ],
-      tagline: "Earn Real Tokens on Base",
-      ogTitle: "LearnFrame",
-      ogDescription: "Master blockchain knowledge and earn LEARN tokens through interactive quizzes.",
-      ogImageUrl: "https://learnframe.vercel.app/api/preview"
-    },
-    accountAssociation: {
-      header: "eyJmaWQiOjIwODY0NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGYwZTBlNTQwMjgyOUMyNzI3ZDhiNWEzZGY5MmI0NEQzRDM1N0VlQTcifQ",
-      payload: "eyJkb21haW4iOiJodHRwczovL2xlYXJuZnJhbWUudmVyY2VsLmFwcCJ9",
-      signature: "+PnHQuhlq61HAPXqqNh5qbiBtDtyMsnRA//T5cr3kpwoRgXZX9dPXz/HW5syDS7MljXcnpYtVlVLensPpKkQARs="
+      splashImageUrl: "https://learnframe.vercel.app/icon.svg",
+      splashBackgroundColor: "#1e293b"
     },
     miniApp: {
       name: "LearnFrame",
-      description: "Master blockchain knowledge and earn LEARN tokens on Base. Interactive quizzes with advanced scoring, real rewards, and global leaderboards. Learn about Web3, DeFi, smart contracts, and more while earning on-chain rewards.",
-      icon: "https://learnframe.vercel.app/icon.png",
-      iconUrl: "https://learnframe.vercel.app/icon.png",
+      description: "Learn blockchain knowledge, earn LEARN tokens on Base with advanced quiz system",
+      icon: "https://learnframe.vercel.app/icon.svg",
       url: "https://learnframe.vercel.app",
-      homeUrl: "https://learnframe.vercel.app",
-      splashImageUrl: "https://learnframe.vercel.app/icon.png",
-      splashBackgroundColor: "#1e293b",
       primaryCategory: "education",
       tags: ["blockchain", "education", "base", "web3", "quiz"],
       version: "1.2.0",
@@ -55,9 +36,6 @@ export async function GET() {
       ],
       supportedChains: ["base"],
       minSdkVersion: "0.1.0"
-    },
-    baseBuilder: {
-      allowedAddresses: ["0x5c0834E86c197b10d583940EC6366EFaA2e93B1e"]
     }
   }, {
     headers: {
