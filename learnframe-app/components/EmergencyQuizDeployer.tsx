@@ -21,6 +21,7 @@ export function EmergencyQuizDeployer() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStatus, setDeployStatus] = useState<string>('');
   const [deployedCount, setDeployedCount] = useState(0);
+  const [showQuickFix, setShowQuickFix] = useState(true);
 
   const deployQuizzes = async () => {
     try {
@@ -138,10 +139,50 @@ export function EmergencyQuizDeployer() {
   };
 
   return (
-    <div className="bg-red-600/20 border border-red-500 rounded-lg p-6">
-      <div className="text-center space-y-4">
-        <div className="text-4xl mb-4">🚨</div>
-        <h3 className="text-2xl font-bold text-red-300">Emergency Quiz Deployment</h3>
+    <div className="space-y-6">
+      {showQuickFix && (
+        <div className="bg-red-900/40 border-2 border-red-500 rounded-lg p-6 relative">
+          <button 
+            onClick={() => setShowQuickFix(false)}
+            className="absolute top-2 right-2 text-red-300 hover:text-white"
+          >
+            ✕
+          </button>
+          <div className="text-center space-y-4">
+            <div className="text-6xl mb-4 animate-pulse">🔥</div>
+            <h2 className="text-3xl font-bold text-red-300">CRITICAL: Users Cannot Complete Transactions!</h2>
+            <div className="bg-black/50 rounded-lg p-4 space-y-3">
+              <p className="text-red-200 text-lg font-bold">
+                🚨 NO QUIZZES EXIST ON BLOCKCHAIN
+              </p>
+              <p className="text-red-200">
+                All user transactions are failing with &quot;Quiz not active&quot; error
+              </p>
+              <p className="text-yellow-200 text-lg">
+                ⚡ IMMEDIATE ACTION REQUIRED BY CONTRACT OWNER
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="bg-blue-600/20 border border-blue-500 rounded-lg p-4">
+                <h4 className="font-bold text-blue-300 mb-2">🏃‍♂️ FASTEST FIX - Command Line:</h4>
+                <code className="text-xs bg-black/50 p-2 rounded block">
+                  DEPLOYER_PRIVATE_KEY=0x... node EMERGENCY-CREATE-QUIZZES.js
+                </code>
+              </div>
+              <div className="bg-green-600/20 border border-green-500 rounded-lg p-4">
+                <h4 className="font-bold text-green-300 mb-2">🖱️ WEB INTERFACE:</h4>
+                <p className="text-green-200 text-sm">Use the deployment button below</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="bg-red-600/20 border border-red-500 rounded-lg p-6">
+        <div className="text-center space-y-4">
+          <div className="text-4xl mb-4">🚨</div>
+          <h3 className="text-2xl font-bold text-red-300">Emergency Quiz Deployment</h3>
         
         <div className="bg-black/30 rounded-lg p-4 space-y-2">
           <p className="text-red-200">
@@ -186,6 +227,7 @@ export function EmergencyQuizDeployer() {
           Only the contract owner can execute this action.
         </p>
       </div>
+    </div>
     </div>
   );
 }
